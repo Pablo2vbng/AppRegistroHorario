@@ -6,7 +6,6 @@ $stmtTotal = $pdo->query("SELECT COUNT(*) FROM usuarios");
 $totalEmpleados = $stmtTotal->fetchColumn();
 
 // 2. Obtener estado actual de todos los empleados HOY
-// Esta consulta es "mágica": busca el último fichaje de cada usuario hoy
 $sqlEstadoHoy = "
     SELECT u.id, u.nombre, u.foto_url, f.tipo as ultimo_estado
     FROM usuarios u
@@ -23,22 +22,18 @@ $sqlEstadoHoy = "
 $stmtEstados = $pdo->query($sqlEstadoHoy);
 $empleados = $stmtEstados->fetchAll(PDO::FETCH_ASSOC);
 
-// 3. Clasificar empleados para las "Cards"
 $trabajandoArr = [];
-$enPausaCount = 0;
 $noFichadoCount = 0;
 
 foreach ($empleados as $emp) {
     if ($emp['ultimo_estado'] == 'entrada' || $emp['ultimo_estado'] == 'reanudar') {
         $trabajandoArr[] = $emp;
-    } elseif ($emp['ultimo_estado'] == 'pausa') {
-        $enPausaCount++;
-    } elseif (is_null($emp['ultimo_estado'])) {
+    } elseif (is_null($emp['ultimo_estado']) || $emp['ultimo_estado'] == 'salida') {
         $noFichadoCount++;
     }
 }
 
-// 4. Saber el estado del usuario logueado (para bloquear botones)
+// 3. Estado del usuario logueado
 $miId = $_SESSION['usuario_id'];
 $stmtMiEstado = $pdo->prepare("SELECT tipo FROM fichajes WHERE usuario_id = ? AND DATE(fecha_hora) = CURDATE() ORDER BY id DESC LIMIT 1");
 $stmtMiEstado->execute([$miId]);
@@ -56,101 +51,122 @@ $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
 </head>
 <body class="bg-slate-50 font-sans">
     <div class="flex flex-col md:flex-row min-h-screen">
-        <!-- Sidebar -->
-        <div class="bg-slate-800 shadow-xl w-full md:w-64 flex-shrink-0">
-            <div class="p-6 text-center border-b border-slate-700">
-                <img src="assets/img/logoCvTools.jpg" alt="CVTools" class="w-32 mx-auto rounded">
+        
+        <!-- SIDEBAR ACTUALIZADO CON ENLACES ?p= -->
+        <div class="bg-slate-900 shadow-xl w-full md:w-64 flex-shrink-0 text-slate-300">
+            <div class="p-6 text-center border-b border-slate-800">
+                <img src="assets/img/logoCvTools.jpg" alt="CVTools" class="w-32 mx-auto rounded shadow-lg">
             </div>
-            <nav class="text-white text-sm font-semibold pt-3">
-                <a href="index.php" class="flex items-center text-white py-4 pl-6 bg-slate-700 border-l-4 border-blue-400">
-                    <i class="fas fa-tachometer-alt mr-3"></i> Escritorio
+            <nav class="text-sm font-semibold pt-4">
+                <a href="index.php?p=dashboard" class="flex items-center text-white py-4 pl-6 bg-slate-800 border-l-4 border-blue-500">
+                    <i class="fas fa-desktop mr-3"></i> Escritorio
                 </a>
-                <p class="pl-6 pt-4 pb-2 text-gray-400 text-xs uppercase">Informes</p>
-                <a href="#" class="flex items-center text-white opacity-75 hover:opacity-100 py-3 pl-6"><i class="fas fa-clock mr-3"></i> Jornada</a>
-                <a href="#" class="flex items-center text-white opacity-75 hover:opacity-100 py-3 pl-6"><i class="fas fa-calendar-alt mr-3"></i> Vacaciones</a>
+                <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest">Informes</p>
+                <a href="index.php?p=jornada" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+                    <i class="fas fa-history mr-3"></i> Mi Jornada
+                </a>
+                
+                <?php if($_SESSION['rol'] != 'empleado'): ?>
+                <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest">Administración</p>
+                <a href="index.php?p=empleados" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+                    <i class="fas fa-users-cog mr-3"></i> Plantilla
+                </a>
+                <a href="#" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+                    <i class="fas fa-chart-pie mr-3"></i> Estadísticas
+                </a>
+                <?php endif; ?>
+
+                <!-- BOTÓN WHATSAPP TARDANZAS -->
+                <div class="mt-10 px-4">
+                    <a href="https://wa.me/34600000000?text=Hola,%20voy%20a%20llegar%20tarde%20hoy" target="_blank" 
+                       class="flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg transition shadow-md">
+                        <i class="fab fa-whatsapp mr-2 text-lg"></i> Notificar Tardanza
+                    </a>
+                </div>
             </nav>
         </div>
 
-        <div class="flex-1">
-            <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b">
-                <div class="text-xl font-bold text-slate-700">Hola <?php echo $_SESSION['nombre']; ?></div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-slate-500 font-medium"><?php echo date('d/m/Y H:i'); ?></span>
-                    <a href="logout.php" class="bg-red-50 text-red-600 px-3 py-1 rounded-md font-bold hover:bg-red-100 transition">Salir</a>
+        <!-- CONTENIDO -->
+        <div class="flex-1 flex flex-col">
+            <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b border-slate-200">
+                <div class="text-xl font-bold text-slate-800">Hola, <?php echo explode(' ', $_SESSION['nombre'])[0]; ?> 👋</div>
+                <div class="flex items-center space-x-6">
+                    <div class="hidden md:block text-right">
+                        <p class="text-xs text-slate-400 uppercase font-bold tracking-tighter">Fecha y Hora</p>
+                        <p class="text-sm font-bold text-slate-600"><?php echo date('d/m/Y H:i'); ?></p>
+                    </div>
+                    <a href="logout.php" class="bg-rose-50 text-rose-600 px-4 py-2 rounded-lg font-bold hover:bg-rose-100 transition border border-rose-100">Salir</a>
                 </div>
             </header>
 
-            <main class="p-6">
-                <!-- ACCIONES DINÁMICAS -->
-                <div class="bg-white rounded-xl shadow-sm p-8 text-center mb-8 border border-slate-200">
-                    <h2 class="text-xl font-bold mb-6 text-slate-800">¿Qué vas a hacer ahora?</h2>
-                    <div class="flex flex-wrap justify-center gap-4">
+            <main class="p-6 lg:p-10 max-w-7xl mx-auto w-full">
+                <!-- FICHADOR CENTRAL -->
+                <div class="bg-white rounded-2xl shadow-sm p-10 text-center mb-10 border border-slate-200">
+                    <h2 class="text-2xl font-black mb-8 text-slate-800 uppercase tracking-tight">Registro Horario Digital</h2>
+                    
+                    <div class="flex flex-wrap justify-center gap-6">
                         <button onclick="fichar('entrada')" <?php echo ($miEstadoActual == 'entrada' || $miEstadoActual == 'reanudar') ? 'disabled' : ''; ?> 
-                                class="disabled:opacity-30 bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition active:scale-95">
-                            ENTRAR
+                                class="disabled:opacity-20 bg-emerald-500 hover:bg-emerald-600 text-white w-40 py-5 rounded-2xl font-black text-xl shadow-xl transition transform active:scale-95 flex flex-col items-center">
+                            <i class="fas fa-sign-in-alt mb-2"></i> ENTRAR
                         </button>
                         <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada' && $miEstadoActual != 'reanudar') ? 'disabled' : ''; ?> 
-                                class="disabled:opacity-30 bg-amber-500 hover:bg-amber-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition active:scale-95">
-                            PAUSA
+                                class="disabled:opacity-20 bg-amber-500 hover:bg-amber-600 text-white w-40 py-5 rounded-2xl font-black text-xl shadow-xl transition transform active:scale-95 flex flex-col items-center">
+                            <i class="fas fa-coffee mb-2"></i> PAUSA
                         </button>
                         <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'salida' || $miEstadoActual == 'fuera') ? 'disabled' : ''; ?> 
-                                class="disabled:opacity-30 bg-rose-500 hover:bg-rose-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-lg transition active:scale-95">
-                            SALIR
+                                class="disabled:opacity-20 bg-rose-500 hover:bg-rose-600 text-white w-40 py-5 rounded-2xl font-black text-xl shadow-xl transition transform active:scale-95 flex flex-col items-center">
+                            <i class="fas fa-power-off mb-2"></i> SALIR
                         </button>
                     </div>
-                    <p class="mt-4 text-sm text-slate-500">Estado actual: <span class="font-bold uppercase"><?php echo $miEstadoActual; ?></span></p>
-                    <div id="status-msg" class="mt-2 h-6"></div>
+                    
+                    <div class="mt-8">
+                        <span class="px-4 py-2 bg-slate-100 rounded-full text-slate-500 text-sm font-bold">
+                            Estado actual: <span class="text-slate-800"><?php echo strtoupper($miEstadoActual); ?></span>
+                        </span>
+                    </div>
+                    <div id="status-msg" class="mt-4 h-6 font-bold text-blue-600"></div>
                 </div>
 
-                <!-- CARDS DINÁMICAS -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-emerald-500">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="text-slate-400 text-xs uppercase font-bold">Trabajando</p>
-                                <p class="text-4xl font-black text-slate-800"><?php echo count($trabajandoArr); ?></p>
-                            </div>
-                            <i class="fas fa-door-open text-emerald-100 text-4xl"></i>
-                        </div>
+                <!-- CARDS -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border-b-4 border-emerald-500 relative overflow-hidden">
+                        <p class="text-slate-400 text-xs uppercase font-black mb-1">En el puesto</p>
+                        <p class="text-5xl font-black text-slate-800"><?php echo count($trabajandoArr); ?></p>
+                        <i class="fas fa-user-check absolute -right-4 -bottom-4 text-6xl text-slate-50 opacity-50"></i>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-rose-500">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="text-slate-400 text-xs uppercase font-bold">Sin fichar hoy</p>
-                                <p class="text-4xl font-black text-slate-800"><?php echo $noFichadoCount; ?></p>
-                            </div>
-                            <i class="fas fa-user-clock text-rose-100 text-4xl"></i>
-                        </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border-b-4 border-rose-400">
+                        <p class="text-slate-400 text-xs uppercase font-black mb-1">Fuera / Pausa</p>
+                        <p class="text-5xl font-black text-slate-800"><?php echo $noFichadoCount; ?></p>
                     </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-blue-500">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="text-slate-400 text-xs uppercase font-bold">Total Plantilla</p>
-                                <p class="text-4xl font-black text-slate-800"><?php echo $totalEmpleados; ?></p>
-                            </div>
-                            <i class="fas fa-users text-blue-100 text-4xl"></i>
-                        </div>
+                    <div class="bg-white p-8 rounded-2xl shadow-sm border-b-4 border-blue-500">
+                        <p class="text-slate-400 text-xs uppercase font-black mb-1">Total Plantilla</p>
+                        <p class="text-5xl font-black text-slate-800"><?php echo $totalEmpleados; ?></p>
                     </div>
                 </div>
 
-                <!-- LISTA DE EMPLEADOS TRABAJANDO -->
-                <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-                    <h3 class="text-slate-700 font-bold mb-6 flex items-center">
-                        <span class="w-3 h-3 bg-emerald-500 rounded-full mr-2 animate-pulse"></span>
-                        PERSONAL EN ACTIVO AHORA
+                <!-- EMPLEADOS TRABAJANDO -->
+                <div class="bg-white rounded-2xl shadow-sm p-8 border border-slate-200">
+                    <h3 class="text-slate-800 font-black mb-8 flex items-center uppercase text-sm tracking-widest">
+                        <span class="flex h-3 w-3 mr-3">
+                          <span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-emerald-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                        </span>
+                        Equipo en Activo
                     </h3>
-                    <div class="flex flex-wrap gap-6">
+                    <div class="flex flex-wrap gap-8">
                         <?php if (empty($trabajandoArr)): ?>
-                            <p class="text-slate-400 text-sm italic">No hay nadie trabajando en este momento.</p>
+                            <p class="text-slate-400 text-sm italic">No hay actividad registrada en este momento.</p>
                         <?php else: ?>
                             <?php foreach ($trabajandoArr as $trabajador): ?>
-                                <div class="flex flex-col items-center group">
+                                <div class="flex flex-col items-center group cursor-help">
                                     <div class="relative">
-                                        <img src="<?php echo $trabajador['foto_url'] ?: 'https://ui-avatars.com/api/?name='.urlencode($trabajador['nombre']); ?>" 
-                                             class="w-16 h-16 rounded-full border-2 border-emerald-500 p-1 shadow-sm group-hover:scale-110 transition">
-                                        <span class="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+                                        <img src="<?php echo $trabajador['foto_url'] ?: 'https://ui-avatars.com/api/?background=e2e8f0&color=475569&bold=true&name='.urlencode($trabajador['nombre']); ?>" 
+                                             class="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-md group-hover:scale-105 transition">
+                                        <div class="absolute -top-2 -right-2 bg-emerald-500 text-white rounded-full p-1 border-2 border-white shadow-sm">
+                                            <i class="fas fa-check text-[10px]"></i>
+                                        </div>
                                     </div>
-                                    <span class="text-xs mt-2 font-bold text-slate-600"><?php echo explode(' ', $trabajador['nombre'])[0]; ?></span>
+                                    <span class="text-xs mt-3 font-black text-slate-700 uppercase tracking-tighter"><?php echo explode(' ', $trabajador['nombre'])[0]; ?></span>
                                 </div>
                             <?php endforeach; ?>
                         <?php endif; ?>
@@ -163,8 +179,7 @@ $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
     <script>
     function fichar(tipo) {
         const msgDiv = document.getElementById('status-msg');
-        msgDiv.className = "mt-2 font-bold text-blue-600";
-        msgDiv.innerText = "Procesando registro...";
+        msgDiv.innerText = "Sincronizando con el servidor...";
         
         fetch('api/fichar.php', {
             method: 'POST',
@@ -174,9 +189,9 @@ $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
         .then(res => res.json())
         .then(data => {
             if(data.success) {
-                location.reload(); // Recarga para ver los nuevos números
+                location.reload();
             } else {
-                msgDiv.className = "mt-2 font-bold text-red-600";
+                msgDiv.className = "mt-4 font-bold text-rose-600";
                 msgDiv.innerText = "Error: " + data.message;
             }
         });
