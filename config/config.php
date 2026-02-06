@@ -11,7 +11,7 @@ define('GESTORA_WHATSAPP', '34687166120');
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'u249173200_registroCvt');
 define('DB_USER', 'u249173200_Pablo2vbngreg');
-define('DB_PASS', 'TuPasswordReal'); // <--- PON TU CONTRASEÑA AQUÍ
+define('DB_PASS', 'Piramide73++%%'); // <--- PON TU CONTRASEÑA AQUÍ
 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8", DB_USER, DB_PASS);
