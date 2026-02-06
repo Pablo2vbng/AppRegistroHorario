@@ -1,6 +1,10 @@
 <?php
+/**
+ * ARCHIVO PRINCIPAL - ENRUTADOR CVTools
+ */
 require_once 'config/config.php';
 
+// 1. LÓGICA DE LOGIN
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'])) {
     $email = $_POST['email']; $pass = $_POST['password'];
     $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
@@ -24,10 +28,12 @@ include 'views/layout_header.php';
 switch ($p) {
     case 'dashboard': include 'views/dashboard.php'; break;
     case 'empleados': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleados.php'; break;
-    case 'gestion_festivos': if($_SESSION['rol'] == 'admin') include 'views/rrhh/festivos.php'; break; // NUEVA
-    case 'calendario_anual': include 'views/calendario_anual.php'; break;
+    case 'empleado_detalle': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleado_detalle.php'; break;
     case 'informes_equipo': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informes_equipo.php'; break;
     case 'gestion_ausencias': if($_SESSION['rol'] == 'admin') include 'views/rrhh/ausencias.php'; break;
+    case 'calendario_anual': include 'views/calendario_anual.php'; break;
+    case 'gestion_festivos': if($_SESSION['rol'] == 'admin') include 'views/rrhh/festivos.php'; break;
+    case 'informe_legal': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informe_legal.php'; break;
     case 'jornada': include 'views/jornada.php'; break;
     case 'solicitudes': include 'views/solicitudes.php'; break;
     case 'documentos': include 'views/documentos.php'; break;
