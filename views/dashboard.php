@@ -57,33 +57,39 @@ $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
             <div class="p-6 text-center border-b border-slate-800">
                 <img src="assets/img/logoCvTools.jpg" alt="CVTools" class="w-32 mx-auto rounded shadow-lg">
             </div>
-            <nav class="text-sm font-semibold pt-4">
-                <a href="index.php?p=dashboard" class="flex items-center text-white py-4 pl-6 bg-slate-800 border-l-4 border-blue-500">
-                    <i class="fas fa-desktop mr-3"></i> Escritorio
-                </a>
-                <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest">Informes</p>
-                <a href="index.php?p=jornada" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
-                    <i class="fas fa-history mr-3"></i> Mi Jornada
-                </a>
-                
-                <?php if($_SESSION['rol'] != 'empleado'): ?>
-                <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest">Administración</p>
-                <a href="index.php?p=empleados" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
-                    <i class="fas fa-users-cog mr-3"></i> Plantilla
-                </a>
-                <a href="#" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
-                    <i class="fas fa-chart-pie mr-3"></i> Estadísticas
-                </a>
-                <?php endif; ?>
+           <!-- Busca el bloque <nav> en dashboard.php y sustitúyelo por este -->
+<nav class="text-sm font-semibold pt-4">
+    <a href="index.php?p=dashboard" class="flex items-center text-white py-4 pl-6 bg-slate-800 border-l-4 border-blue-500">
+        <i class="fas fa-desktop mr-3"></i> Escritorio
+    </a>
+    
+    <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest border-t border-slate-800">Mi Espacio</p>
+    <a href="index.php?p=jornada" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+        <i class="fas fa-history mr-3"></i> Mi Jornada
+    </a>
+    <!-- NUEVO: Ahora todos pueden ir a pedir vacaciones -->
+    <a href="index.php?p=solicitudes" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+        <i class="fas fa-calendar-plus mr-3"></i> Vacaciones / Bajas
+    </a>
+    
+    <?php if($_SESSION['rol'] == 'admin'): ?>
+    <p class="pl-6 pt-6 pb-2 text-slate-500 text-xs uppercase tracking-widest border-t border-slate-800">Administración</p>
+    <a href="index.php?p=empleados" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition">
+        <i class="fas fa-users-cog mr-3"></i> Plantilla
+    </a>
+    <!-- NUEVO: El Admin gestiona las de todos -->
+    <a href="index.php?p=gestion_ausencias" class="flex items-center hover:text-white opacity-75 hover:opacity-100 py-3 pl-6 transition text-amber-400">
+        <i class="fas fa-tasks mr-3"></i> Gestionar Ausencias
+    </a>
+    <?php endif; ?>
 
-                <!-- BOTÓN WHATSAPP TARDANZAS -->
-                <div class="mt-10 px-4">
-                    <a href="https://wa.me/34600000000?text=Hola,%20voy%20a%20llegar%20tarde%20hoy" target="_blank" 
-                       class="flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg transition shadow-md">
-                        <i class="fab fa-whatsapp mr-2 text-lg"></i> Notificar Tardanza
-                    </a>
-                </div>
-            </nav>
+    <div class="mt-10 px-4">
+        <a href="https://wa.me/34600000000?text=Hola,%20notifico%20una%20tardanza" target="_blank" 
+           class="flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white p-3 rounded-lg transition shadow-md">
+            <i class="fab fa-whatsapp mr-2 text-lg"></i> Notificar Tardanza
+        </a>
+    </div>
+</nav>
         </div>
 
         <!-- CONTENIDO -->

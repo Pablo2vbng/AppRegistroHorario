@@ -60,7 +60,12 @@ switch ($pagina) {
     case 'solicitudes':
         include 'views/solicitudes.php';
         break;
-
+        
+        case 'gestion_ausencias':
+            if ($_SESSION['rol'] == 'admin') {
+                include 'views/rrhh/ausencias.php';
+            }
+            break;
     // Redirección por defecto si la página no existe
     default:
         include 'views/dashboard.php';
