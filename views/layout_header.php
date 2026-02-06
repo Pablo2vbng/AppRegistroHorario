@@ -35,7 +35,7 @@ $totalPendientes = $stmtCount->fetchColumn();
         <a href="index.php?p=dashboard" class="block p-3">Escritorio</a>
         <a href="index.php?p=calendario_anual" class="block p-3 text-rose-400">Calendario Anual</a>
         <?php if($_SESSION['rol'] != 'admin'): ?>
-            <a href="index.php?p=solicitudes" class="block p-3">Vacaciones</a>
+            <a href="index.php?p=solicitudes" class="block p-3">Solicitudes</a>
         <?php else: ?>
             <a href="index.php?p=gestion_ausencias" class="block p-3 text-sky-400 italic">Validar (<?php echo $totalPendientes; ?>)</a>
         <?php endif; ?>
