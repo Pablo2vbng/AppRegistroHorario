@@ -1,80 +1,82 @@
 <?php
 require_once 'config/config.php';
-
-// 1. Estado del usuario logueado
 $miId = $_SESSION['usuario_id'];
+
+// 1. Datos del Usuario
+$stmtU = $pdo->prepare("SELECT * FROM usuarios WHERE id = ?");
+$stmtU->execute([$miId]);
+$user = $stmtU->fetch();
+
+// 2. Calcular días de empresa (cierres)
+$stmtC = $pdo->query("SELECT COUNT(*) FROM festivos WHERE descuenta_vacaciones = 1");
+$diasEmpresa = $stmtC->fetchColumn();
+
+// 3. Estado Fichaje
 $stmtMiEstado = $pdo->prepare("SELECT tipo FROM fichajes WHERE usuario_id = ? AND DATE(fecha_hora) = CURDATE() ORDER BY id DESC LIMIT 1");
 $stmtMiEstado->execute([$miId]);
 $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
 
-// 2. Datos para el Administrador (Carmen)
-$alertas = [];
-$statsHoy = ['trabajando' => 0, 'total' => 0];
-
-if ($_SESSION['rol'] == 'admin') {
-    // Alertas > 9h
-    $sqlAlertas = "SELECT u.nombre FROM fichajes f JOIN usuarios u ON f.usuario_id = u.id 
-                   WHERE f.tipo = 'entrada' AND DATE(f.fecha_hora) = CURDATE()
-                   AND f.id = (SELECT MAX(id) FROM fichajes WHERE usuario_id = u.id AND DATE(fecha_hora) = CURDATE())
-                   AND TIMESTAMPDIFF(HOUR, f.fecha_hora, NOW()) >= 9";
-    $alertas = $pdo->query($sqlAlertas)->fetchAll();
-
-    // Gráfico de actividad última semana
-    $sqlGrafico = "SELECT DATE(fecha_hora) as dia, COUNT(*) as registros FROM fichajes 
-                   WHERE fecha_hora >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) GROUP BY dia ORDER BY dia ASC";
-    $datosGrafico = $pdo->query($sqlGrafico)->fetchAll(PDO::FETCH_ASSOC);
-}
+// 4. Próximo festivo en Benigànim
+$stmtNext = $pdo->prepare("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDATE() ORDER BY fecha ASC LIMIT 1");
+$stmtNext->execute();
+$nextFest = $stmtNext->fetch();
 ?>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <div class="max-w-6xl mx-auto">
-    
-    <!-- HEADER BIENVENIDA -->
-    <div class="mb-10">
-        <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Sede Benigànim</h1>
-        <p class="text-slate-500 font-bold">Bienvenido/a al registro horario de CVTools</p>
+    <!-- PANEL BIENVENIDA -->
+    <div class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 bg-slate-900 p-8 rounded-[40px] text-white shadow-2xl">
+        <div>
+            <h1 class="text-3xl font-black italic uppercase tracking-tighter">Hola, <?php echo explode(' ', $user['nombre'])[0]; ?> 👋</h1>
+            <p class="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Sede Central Benigànim</p>
+        </div>
+        <?php if($nextFest): ?>
+        <div class="bg-white/10 px-6 py-3 rounded-2xl border border-white/10 text-center">
+            <p class="text-[10px] font-black text-blue-400 uppercase tracking-widest">Próximo Festivo</p>
+            <p class="font-bold text-sm"><?php echo date('d M', strtotime($nextFest['fecha'])); ?> - <?php echo $nextFest['nombre']; ?></p>
+        </div>
+        <?php endif; ?>
     </div>
 
-    <?php if(!empty($alertas)): ?>
-        <div class="bg-rose-50 border-l-4 border-rose-500 p-4 mb-8 rounded-r-xl animate-pulse">
-            <p class="text-rose-800 text-xs font-black uppercase"><i class="fas fa-exclamation-circle mr-2"></i> Atención Carmen: Trabajadores excediendo jornada</p>
-        </div>
-    <?php endif; ?>
-
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <!-- FICHAJE (Para todos los trabajadores) -->
+        <!-- FICHAJE -->
         <div class="lg:col-span-2 bg-white rounded-[40px] shadow-sm border p-8 md:p-12 text-center">
-            <h2 class="text-xl font-black mb-10 uppercase tracking-widest text-slate-400">Control de Jornada</h2>
+            <h2 class="text-xs font-black mb-10 uppercase tracking-[0.2em] text-slate-300">Registro de Jornada</h2>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button onclick="fichar('entrada')" <?php echo ($miEstadoActual != 'fuera' && $miEstadoActual != 'salida') ? 'disabled' : ''; ?> 
-                    class="disabled:opacity-20 bg-emerald-500 hover:bg-emerald-600 text-white py-8 rounded-3xl font-black text-xl shadow-xl transition active:scale-95 flex flex-col items-center">
-                    <i class="fas fa-sign-in-alt mb-3"></i> ENTRAR
+                    class="disabled:opacity-20 bg-emerald-500 hover:bg-emerald-600 text-white py-10 rounded-[32px] font-black text-2xl shadow-xl transition active:scale-95 flex flex-col items-center">
+                    <i class="fas fa-play mb-3"></i> ENTRAR
                 </button>
                 <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada' && $miEstadoActual != 'reanudar') ? 'disabled' : ''; ?> 
-                    class="disabled:opacity-20 bg-amber-500 hover:bg-amber-600 text-white py-8 rounded-3xl font-black text-xl shadow-xl transition active:scale-95 flex flex-col items-center">
-                    <i class="fas fa-coffee mb-3"></i> PAUSA
+                    class="disabled:opacity-20 bg-amber-500 hover:bg-amber-600 text-white py-10 rounded-[32px] font-black text-2xl shadow-xl transition active:scale-95 flex flex-col items-center">
+                    <i class="fas fa-pause mb-3"></i> PAUSA
                 </button>
                 <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'salida' || $miEstadoActual == 'fuera') ? 'disabled' : ''; ?> 
-                    class="disabled:opacity-20 bg-rose-500 hover:bg-rose-600 text-white py-8 rounded-3xl font-black text-xl shadow-xl transition active:scale-95 flex flex-col items-center">
+                    class="disabled:opacity-20 bg-rose-500 hover:bg-rose-600 text-white py-10 rounded-[32px] font-black text-2xl shadow-xl transition active:scale-95 flex flex-col items-center">
                     <i class="fas fa-power-off mb-3"></i> SALIR
                 </button>
             </div>
-            <p class="mt-8 font-black text-xs uppercase tracking-tighter text-slate-300 italic">Tu estado actual en Benigànim: <span class="text-slate-900"><?php echo strtoupper($miEstadoActual); ?></span></p>
         </div>
 
-        <!-- GRÁFICO (Solo Carmen) -->
-        <div class="bg-white rounded-[40px] shadow-sm border p-8">
-            <?php if($_SESSION['rol'] == 'admin'): ?>
-                <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 text-center">Actividad Semanal</h3>
-                <canvas id="chartActividad"></canvas>
-            <?php else: ?>
-                <div class="text-center py-10">
-                    <i class="fas fa-clock text-slate-100 text-6xl mb-4"></i>
-                    <p class="text-slate-400 font-bold uppercase text-[10px]">Recuerda registrar siempre tus pausas</p>
+        <!-- RESUMEN VACACIONES DETALLADO -->
+        <div class="bg-white rounded-[40px] shadow-sm border p-10 flex flex-col justify-center">
+            <h3 class="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8 border-b pb-4">Bolsa de Vacaciones</h3>
+            
+            <div class="space-y-6">
+                <div class="flex justify-between items-end">
+                    <p class="text-sm font-bold text-slate-500">Total Anual</p>
+                    <p class="text-2xl font-black text-slate-800">22 <span class="text-[10px] text-slate-300">días</span></p>
                 </div>
-            <?php endif; ?>
+                <div class="flex justify-between items-end">
+                    <p class="text-sm font-bold text-rose-400">Cierre Empresa</p>
+                    <p class="text-lg font-black text-rose-500">- <?php echo $diasEmpresa; ?> <span class="text-[10px] opacity-50">días</span></p>
+                </div>
+                <div class="pt-6 border-t border-slate-100 flex justify-between items-end">
+                    <p class="text-sm font-black text-slate-800 uppercase italic">Disponibles</p>
+                    <p class="text-4xl font-black text-blue-600"><?php echo $user['dias_vacaciones_disponibles']; ?></p>
+                </div>
+            </div>
+            
+            <a href="index.php?p=solicitudes" class="mt-10 block text-center bg-slate-50 text-slate-400 hover:text-blue-600 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition">Pedir mis días libremente</a>
         </div>
     </div>
 </div>
@@ -84,22 +86,4 @@ function fichar(tipo) {
     fetch('api/fichar.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `tipo=${tipo}` })
     .then(res => res.json()).then(data => data.success ? location.reload() : alert(data.message));
 }
-
-<?php if($_SESSION['rol'] == 'admin'): ?>
-new Chart(document.getElementById('chartActividad'), {
-    type: 'line',
-    data: {
-        labels: [<?php foreach($datosGrafico as $d) echo "'" . date('d/m', strtotime($d['dia'])) . "',"; ?>],
-        datasets: [{
-            label: 'Registros',
-            data: [<?php foreach($datosGrafico as $d) echo $d['registros'] . ","; ?>],
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.4
-        }]
-    },
-    options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, display: false }, x: { grid: { display: false } } } }
-});
-<?php endif; ?>
 </script>
