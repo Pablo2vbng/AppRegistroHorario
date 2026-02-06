@@ -1,5 +1,5 @@
 <?php
-// Obtener todas las ausencias pendientes con el nombre del empleado
+// 1. Obtener todas las ausencias pendientes de validar
 $sql = "SELECT a.*, u.nombre as empleado_nombre 
         FROM ausencias a 
         JOIN usuarios u ON a.usuario_id = u.id 
@@ -8,78 +8,86 @@ $sql = "SELECT a.*, u.nombre as empleado_nombre
 $ausencias = $pdo->query($sql)->fetchAll();
 ?>
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Gestionar Ausencias - CVTools</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-</head>
-<body class="bg-slate-50 flex min-h-screen">
-
-    <!-- Sidebar (Copia el de empleados.php o usa el nuevo nav) -->
-
-    <div class="flex-1 p-8">
-        <header class="mb-8">
-            <h1 class="text-2xl font-black text-slate-800 uppercase italic">Validación de Ausencias</h1>
-            <p class="text-slate-500 font-medium">Revisa y aprueba las solicitudes del equipo</p>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <?php foreach($ausencias as $a): ?>
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
-                <div>
-                    <div class="flex justify-between items-start mb-4">
-                        <span class="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-1 rounded uppercase tracking-widest">
-                            <?php echo $a['tipo']; ?>
-                        </span>
-                        <span class="text-slate-400 text-xs font-bold"><?php echo date('d/m/Y', strtotime($a['fecha_inicio'])); ?></span>
-                    </div>
-                    <h3 class="font-black text-slate-800 text-lg mb-1"><?php echo $a['empleado_nombre']; ?></h3>
-                    <p class="text-slate-500 text-sm italic mb-4">"<?php echo $a['motivo'] ?: 'Sin comentarios'; ?>"</p>
-                    <div class="bg-slate-50 rounded-xl p-3 text-sm font-bold text-slate-600 border border-slate-100">
-                        <i class="far fa-calendar-alt mr-2 text-blue-500"></i>
-                        <?php echo date('d M', strtotime($a['fecha_inicio'])); ?> al <?php echo date('d M', strtotime($a['fecha_fin'])); ?>
-                    </div>
-                </div>
-
-                <div class="mt-6 flex gap-3">
-                    <button onclick="gestionar(<?php echo $a['id']; ?>, 'aprobado')" class="flex-1 bg-emerald-500 text-white font-black py-3 rounded-xl hover:bg-emerald-600 transition shadow-lg shadow-emerald-100">
-                        APROBAR
-                    </button>
-                    <button onclick="gestionar(<?php echo $a['id']; ?>, 'rechazado')" class="flex-1 bg-white text-rose-500 border-2 border-rose-500 font-black py-3 rounded-xl hover:bg-rose-50 transition">
-                        RECHAZAR
-                    </button>
-                </div>
-            </div>
-            <?php endforeach; ?>
-
-            <?php if(empty($ausencias)): ?>
-            <div class="col-span-full py-20 text-center">
-                <i class="fas fa-mug-hot text-slate-200 text-6xl mb-4"></i>
-                <p class="text-slate-400 font-bold italic">No hay solicitudes pendientes. ¡Todo al día!</p>
-                <a href="index.php" class="text-blue-500 underline text-sm mt-2 block">Volver al escritorio</a>
-            </div>
-            <?php endif; ?>
+<div class="max-w-6xl mx-auto">
+    <header class="mb-10 flex justify-between items-end">
+        <div>
+            <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">Validación de Ausencias</h1>
+            <p class="text-slate-500 font-bold">Solicitudes pendientes de aprobación</p>
         </div>
-    </div>
+        <div class="bg-amber-100 text-amber-700 px-4 py-2 rounded-xl text-xs font-black uppercase">
+            <?php echo count($ausencias); ?> Pendientes
+        </div>
+    </header>
 
-    <script>
-    function gestionar(id, estado) {
-        if(!confirm('¿Estás seguro de que quieres ' + estado + ' esta solicitud?')) return;
-        
-        fetch('api/solicitudes_gestionar.php', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: `id=${id}&estado=${estado}`
-        })
-        .then(res => res.json())
-        .then(data => {
-            if(data.success) location.reload();
-            else alert("Error: " + data.message);
-        });
-    }
-    </script>
-</body>
-</html>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <?php foreach($ausencias as $a): ?>
+        <div class="bg-white rounded-[32px] shadow-sm border border-slate-200 p-8 flex flex-col justify-between hover:shadow-xl transition-shadow duration-300">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <span class="bg-slate-100 text-slate-500 text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-widest border border-slate-200">
+                        <?php echo $a['tipo']; ?>
+                    </span>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-slate-400 uppercase">Solicitado</p>
+                        <p class="text-xs font-bold text-slate-600"><?php echo date('d/m/Y', strtotime($a['fecha_inicio'])); ?></p>
+                    </div>
+                </div>
+
+                <h3 class="font-black text-slate-800 text-xl mb-2"><?php echo $a['empleado_nombre']; ?></h3>
+                
+                <?php if($a['motivo']): ?>
+                    <p class="text-slate-500 text-sm italic mb-6">"<?php echo $a['motivo']; ?>"</p>
+                <?php endif; ?>
+
+                <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-6">
+                    <div class="flex items-center text-slate-700 font-bold text-sm">
+                        <i class="far fa-calendar-check mr-3 text-blue-500 text-lg"></i>
+                        <span><?php echo date('d M', strtotime($a['fecha_inicio'])); ?> al <?php echo date('d M', strtotime($a['fecha_fin'])); ?></span>
+                    </div>
+                </div>
+
+                <!-- BOTÓN PARA VER JUSTIFICANTE MÉDICO -->
+                <?php if($a['archivo_justificante']): ?>
+                    <a href="<?php echo $a['archivo_justificante']; ?>" target="_blank" 
+                       class="flex items-center justify-center w-full bg-rose-50 text-rose-600 p-3 rounded-xl mb-6 font-black text-[10px] uppercase tracking-widest border border-rose-100 hover:bg-rose-100 transition">
+                        <i class="fas fa-file-medical mr-2 text-sm"></i> Ver Justificante Médico
+                    </a>
+                <?php endif; ?>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="gestionarSolicitud(<?php echo $a['id']; ?>, 'aprobado')" class="flex-1 bg-emerald-500 text-white font-black py-4 rounded-2xl hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition active:scale-95 text-xs">
+                    APROBAR
+                </button>
+                <button onclick="gestionarSolicitud(<?php echo $a['id']; ?>, 'rechazado')" class="flex-1 bg-white text-rose-500 border-2 border-rose-500 font-black py-4 rounded-2xl hover:bg-rose-50 transition active:scale-95 text-xs">
+                    RECHAZAR
+                </button>
+            </div>
+        </div>
+        <?php endforeach; ?>
+
+        <?php if(empty($ausencias)): ?>
+        <div class="col-span-full py-32 text-center bg-white rounded-[40px] border-2 border-dashed border-slate-200">
+            <i class="fas fa-check-circle text-slate-100 text-8xl mb-6"></i>
+            <p class="text-slate-400 font-black uppercase italic tracking-widest">Bandeja de entrada vacía. ¡Buen trabajo Carmen!</p>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script>
+function gestionarSolicitud(id, estado) {
+    if(!confirm('¿Deseas confirmar esta acción?')) return;
+    
+    fetch('api/solicitudes_gestionar.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `id=${id}&estado=${estado}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.success) location.reload();
+        else alert("Error: " + data.message);
+    });
+}
+</script>
