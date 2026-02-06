@@ -28,15 +28,16 @@ include 'views/layout_header.php';
 switch ($p) {
     case 'dashboard': include 'views/dashboard.php'; break;
     case 'empleados': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleados.php'; break;
+    case 'empleado_detalle': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleado_detalle.php'; break;
+    case 'calendario_anual': include 'views/calendario_anual.php'; break; // RUTA PARA TODOS
     case 'informes_equipo': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informes_equipo.php'; break;
     case 'gestion_ausencias': if($_SESSION['rol'] == 'admin') include 'views/rrhh/ausencias.php'; break;
-    case 'calendario_equipo': if($_SESSION['rol'] == 'admin') include 'views/rrhh/calendario.php'; break;
     case 'estadisticas': if($_SESSION['rol'] == 'admin') include 'views/rrhh/estadisticas.php'; break;
     case 'informe_legal': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informe_legal.php'; break;
     case 'jornada': include 'views/jornada.php'; break;
     case 'solicitudes': include 'views/solicitudes.php'; break;
     case 'documentos': include 'views/documentos.php'; break;
-    case 'perfil': include 'views/perfil.php'; break; // NUEVA RUTA
+    case 'perfil': include 'views/perfil.php'; break;
     default: include 'views/dashboard.php'; break;
 }
 
