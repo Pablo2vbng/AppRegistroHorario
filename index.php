@@ -1,10 +1,6 @@
 <?php
-/**
- * ARCHIVO PRINCIPAL - ENRUTADOR CVTools
- */
 require_once 'config/config.php';
 
-// 1. LÓGICA DE LOGIN
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'])) {
     $email = $_POST['email']; $pass = $_POST['password'];
     $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
@@ -29,6 +25,7 @@ switch ($p) {
     case 'dashboard': include 'views/dashboard.php'; break;
     case 'empleados': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleados.php'; break;
     case 'empleado_detalle': if($_SESSION['rol'] == 'admin') include 'views/rrhh/empleado_detalle.php'; break;
+    case 'informe_global': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informe_global.php'; break; // NUEVA
     case 'informes_equipo': if($_SESSION['rol'] == 'admin') include 'views/rrhh/informes_equipo.php'; break;
     case 'gestion_ausencias': if($_SESSION['rol'] == 'admin') include 'views/rrhh/ausencias.php'; break;
     case 'calendario_anual': include 'views/calendario_anual.php'; break;
