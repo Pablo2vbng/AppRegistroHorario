@@ -12,19 +12,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $stmtS = $pdo->prepare("SELECT * FROM ausencias WHERE id = ?");
         $stmtS->execute([$id]); $sol = $stmtS->fetch();
 
-        // LÓGICA SOLICITADA:
-        // Si Carmen aprueba y SÍ es recuperable (1), restamos del saldo de vacaciones.
-        // Si Carmen marca NO recuperable (0), no se resta nada (lo paga la empresa).
+        // Lógica de saldo de vacaciones si es aprobado y SÍ es recuperable
         if ($estado == 'aprobado' && $recuperable == 1) {
             $diasARestar = 0;
             if ($sol['es_por_horas']) {
-                $diasARestar = $sol['horas_solicitadas'] / 8; // 8h jornada CVTools
+                $diasARestar = $sol['horas_solicitadas'] / 8;
             } else {
                 $inicio = new DateTime($sol['fecha_inicio']);
                 $fin = new DateTime($sol['fecha_fin']);
                 $fin->modify('+1 day');
                 foreach (new DatePeriod($inicio, new DateInterval('P1D'), $fin) as $dt) {
-                    if ($dt->format('N') < 6) { // Solo laborables
+                    if ($dt->format('N') < 6) {
                         $stF = $pdo->prepare("SELECT id FROM festivos WHERE fecha = ?");
                         $stF->execute([$dt->format('Y-m-d')]);
                         if (!$stF->fetch()) $diasARestar++;
@@ -35,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 ->execute([$diasARestar, $sol['usuario_id']]);
         }
 
-        $pdo->prepare("UPDATE ausencias SET estado = ?, recuperable = ? WHERE id = ?")
+        // Actualizamos estado y reseteamos la vista de notificación para que el usuario reciba el aviso
+        $pdo->prepare("UPDATE ausencias SET estado = ?, recuperable = ?, notificacion_vista = 0 WHERE id = ?")
             ->execute([$estado, $recuperable, $id]);
 
         $pdo->commit();

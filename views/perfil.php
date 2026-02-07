@@ -1,48 +1,44 @@
 <?php
 $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE id = ?");
 $stmt->execute([$_SESSION['usuario_id']]);
-$user = $stmt->fetch();
+$u = $stmt->fetch();
 ?>
 
-<div class="max-w-2xl mx-auto">
-    <h1 class="text-2xl font-black text-slate-800 uppercase italic mb-8">Mi Perfil de Usuario</h1>
+<div class="max-w-2xl mx-auto pb-20">
+    <div class="mb-10 text-center">
+        <h1 class="text-3xl font-black text-slate-800 uppercase italic tracking-tighter mb-2">Mi Perfil CVTools</h1>
+        <p class="text-slate-400 font-bold text-sm">Gestiona tus datos personales y de acceso</p>
+    </div>
 
-    <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-10">
-            <form id="formPerfil" class="space-y-6">
-                <div class="flex items-center space-x-6 mb-8">
-                    <div class="w-24 h-24 bg-slate-100 rounded-2xl flex items-center justify-center text-4xl text-slate-300 font-black border-2 border-dashed border-slate-200">
-                        <?php echo substr($user['nombre'], 0, 1); ?>
+    <div class="bg-white rounded-[50px] shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-10 md:p-16">
+            <form id="formPerfil" class="space-y-8">
+                <div class="flex flex-col items-center mb-10">
+                    <div class="w-32 h-32 rounded-[40px] bg-slate-900 text-white flex items-center justify-center text-5xl font-black shadow-2xl border-4 border-white rotate-3 mb-6">
+                        <?php echo substr($u['nombre'], 0, 1); ?>
+                    </div>
+                    <p class="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] bg-blue-50 px-4 py-1 rounded-full italic"><?php echo $u['rol']; ?></p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest ml-4">Nombre Completo</label>
+                        <input type="text" name="nombre" value="<?php echo $u['nombre']; ?>" required class="w-full bg-slate-50 border-2 border-slate-50 p-5 rounded-3xl font-black text-slate-700 outline-none focus:border-blue-500 transition shadow-inner">
                     </div>
                     <div>
-                        <h3 class="font-black text-slate-800"><?php echo $user['nombre']; ?></h3>
-                        <p class="text-xs font-bold text-slate-400 uppercase"><?php echo $user['rol']; ?></p>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-3 tracking-widest ml-4">Email Corporativo</label>
+                        <input type="email" value="<?php echo $u['email']; ?>" disabled class="w-full bg-slate-100 border-2 border-slate-100 p-5 rounded-3xl font-black text-slate-300 cursor-not-allowed">
+                        <p class="text-[9px] text-slate-300 mt-2 ml-4 uppercase italic">El email solo puede ser modificado por Carmen.</p>
+                    </div>
+                    <hr class="border-slate-50 my-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-rose-400 uppercase mb-3 tracking-widest ml-4 italic">Cambiar Contraseña</label>
+                        <input type="password" name="password" placeholder="Nueva contraseña (opcional)" class="w-full bg-rose-50/30 border-2 border-rose-50 p-5 rounded-3xl font-black text-slate-700 outline-none focus:border-rose-300 transition shadow-inner">
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Nombre Completo</label>
-                        <input type="text" name="nombre" value="<?php echo $user['nombre']; ?>" class="w-full bg-slate-50 border p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Email Corporativo</label>
-                        <input type="email" value="<?php echo $user['email']; ?>" disabled class="w-full bg-slate-100 border p-4 rounded-2xl font-bold text-slate-400 cursor-not-allowed">
-                    </div>
-                </div>
-
-                <hr class="border-slate-100">
-
-                <div>
-                    <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Nueva Contraseña (dejar en blanco para no cambiar)</label>
-                    <input type="password" name="password" class="w-full bg-slate-50 border p-4 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <button type="submit" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl uppercase text-xs tracking-widest transition active:scale-95">
-                    Guardar Cambios
-                </button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-black py-6 rounded-3xl shadow-xl uppercase text-xs tracking-[0.2em] transition hover:bg-blue-600 active:scale-95">Guardar Cambios</button>
             </form>
-            <div id="perfil-msg" class="mt-4 text-center text-xs font-bold"></div>
         </div>
     </div>
 </div>
@@ -50,22 +46,18 @@ $user = $stmt->fetch();
 <script>
 document.getElementById('formPerfil').onsubmit = function(e) {
     e.preventDefault();
-    const msg = document.getElementById('perfil-msg');
-    msg.innerText = "Actualizando datos...";
-    
+    Swal.fire({ title: 'Actualizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
     fetch('api/perfil_update.php', {
         method: 'POST',
         body: new FormData(this)
     })
-    .then(res => res.json())
-    .then(data => {
+    .then(res => res.json()).then(data => {
         if(data.success) {
-            msg.className = "mt-4 text-center text-emerald-500 text-xs font-bold";
-            msg.innerText = "¡Perfil actualizado con éxito!";
-            setTimeout(() => location.reload(), 1500);
+            Swal.fire({ icon: 'success', title: 'Perfil Actualizado', text: 'Tus cambios se han guardado correctamente.', confirmButtonColor: '#000' })
+            .then(() => location.reload());
         } else {
-            msg.className = "mt-4 text-center text-rose-500 text-xs font-bold";
-            msg.innerText = "Error: " + data.message;
+            Swal.fire('Error', data.message, 'error');
         }
     });
 }
