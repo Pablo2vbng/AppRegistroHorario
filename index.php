@@ -1,8 +1,8 @@
 <?php
 require_once 'config/config.php';
 
-// 1. LOGIN
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email']) && isset($_POST['password'])) {
+// LOGIN
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'])) {
     $email = trim($_POST['email']); $pass = trim($_POST['password']);
     $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
     $stmt->execute([$email]); $user = $stmt->fetch();
@@ -16,13 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email']) && isset($_PO
     }
     if ($loginOk) {
         $_SESSION['usuario_id'] = $user['id']; $_SESSION['nombre'] = $user['nombre']; $_SESSION['rol'] = $user['rol'];
-        header("Location: index.php?p=dashboard"); exit();
+        header("Location: index.php"); exit();
     }
 }
 
 if (!isset($_SESSION['usuario_id'])) { include 'views/login.php'; exit(); }
 
-// 2. ENRUTADOR
 $p = $_GET['p'] ?? 'dashboard';
 include 'views/layout_header.php';
 
@@ -30,15 +29,14 @@ switch ($p) {
     case 'dashboard': include 'views/dashboard.php'; break;
     case 'calendario_anual': include 'views/calendario_anual.php'; break;
     case 'solicitudes': include 'views/solicitudes.php'; break;
-    case 'jornada': include 'views/jornada.php'; break;
     case 'perfil': include 'views/perfil.php'; break;
     case 'documentos': include 'views/documentos.php'; break;
+    case 'informe_legal': include 'views/rrhh/informe_legal.php'; break; // Mensual
+    case 'informe_global': include 'views/rrhh/informe_global.php'; break; // Anual
     case 'empleados': if($_SESSION['rol']=='admin') include 'views/rrhh/empleados.php'; break;
     case 'empleado_detalle': if($_SESSION['rol']=='admin') include 'views/rrhh/empleado_detalle.php'; break;
     case 'gestion_ausencias': if($_SESSION['rol']=='admin') include 'views/rrhh/ausencias.php'; break;
-    case 'informe_global': if($_SESSION['rol']=='admin') include 'views/rrhh/informe_global.php'; break;
     case 'gestion_festivos': if($_SESSION['rol']=='admin') include 'views/rrhh/festivos.php'; break;
-    case 'informe_legal': if($_SESSION['rol']=='admin') include 'views/rrhh/informe_legal.php'; break;
     default: include 'views/dashboard.php'; break;
 }
 
