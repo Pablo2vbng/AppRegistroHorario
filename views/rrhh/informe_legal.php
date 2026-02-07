@@ -1,15 +1,28 @@
 <?php
-if ($_SESSION['rol'] != 'admin' && $_GET['user_id'] != $_SESSION['usuario_id']) exit();
-$userId = $_GET['user_id'] ?? '';
+// Seguridad: Si un empleado intenta entrar, forzamos que el ID sea el suyo
+if ($_SESSION['rol'] == 'empleado') {
+    $userId = $_SESSION['usuario_id'];
+} else {
+    $userId = $_GET['user_id'] ?? '';
+}
+
 $mes = $_GET['mes'] ?? date('m');
 $anio = $_GET['anio'] ?? date('Y');
-$usuarios = $pdo->query("SELECT id, nombre FROM usuarios ORDER BY nombre ASC")->fetchAll();
+
+// Obtener lista de usuarios para el filtro (SOLO EMPLEADOS, EXCLUIMOS ADMINS/DUEÑOS)
+$usuarios = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'empleado' ORDER BY nombre ASC")->fetchAll();
 
 $datos = []; $usuario_nombre = "";
 if ($userId) {
+    // Verificamos que el empleado no intente ver a otro (Doble seguridad)
+    if ($_SESSION['rol'] == 'empleado' && $userId != $_SESSION['usuario_id']) {
+        $userId = $_SESSION['usuario_id'];
+    }
+
     $stmtU = $pdo->prepare("SELECT nombre FROM usuarios WHERE id = ?");
     $stmtU->execute([$userId]);
     $usuario_nombre = $stmtU->fetchColumn();
+
     $stmt = $pdo->prepare("SELECT * FROM fichajes WHERE usuario_id = ? AND MONTH(fecha_hora) = ? AND YEAR(fecha_hora) = ? ORDER BY fecha_hora ASC");
     $stmt->execute([$userId, $mes, $anio]);
     $fichajes = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -18,6 +31,7 @@ if ($userId) {
 ?>
 
 <div class="max-w-4xl mx-auto pb-20">
+    <!-- CABECERA INFORME -->
     <div class="no-print bg-slate-900 text-white p-8 rounded-[40px] mb-10 shadow-2xl flex justify-between items-center">
         <div>
             <p class="text-[10px] font-black uppercase tracking-widest text-blue-400 mb-1 italic">Registro Oficial de Jornada</p>
@@ -26,12 +40,13 @@ if ($userId) {
         <button onclick="window.print()" class="bg-blue-600 px-8 py-3 rounded-2xl font-black text-xs uppercase shadow-lg">Imprimir PDF</button>
     </div>
 
-    <!-- FILTROS -->
-    <div class="bg-white p-6 rounded-[35px] border border-slate-200 mb-10 no-print">
+    <!-- FILTROS (Solo visibles para Admin) -->
+    <?php if($_SESSION['rol'] == 'admin'): ?>
+    <div class="bg-white p-6 rounded-[35px] border border-slate-200 mb-10 no-print shadow-sm">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <input type="hidden" name="p" value="informe_legal">
             <select name="user_id" class="w-full bg-slate-50 border p-4 rounded-2xl font-bold text-xs" required>
-                <option value="">-- Empleado --</option>
+                <option value="">-- Seleccionar Empleado --</option>
                 <?php foreach($usuarios as $u): ?>
                     <option value="<?php echo $u['id']; ?>" <?php echo ($userId == $u['id'])?'selected':''; ?>><?php echo $u['nombre']; ?></option>
                 <?php endforeach; ?>
@@ -45,6 +60,7 @@ if ($userId) {
             <button type="submit" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Generar</button>
         </form>
     </div>
+    <?php endif; ?>
 
     <?php if ($userId): ?>
     <!-- DOCUMENTO OFICIAL -->
@@ -54,19 +70,19 @@ if ($userId) {
                 <h2 class="text-2xl font-black uppercase italic tracking-tighter">Registro Diario de Jornada</h2>
                 <p class="text-[10px] font-black text-slate-400 uppercase">Benigànim • Cumplimiento RD-Ley 8/2019</p>
             </div>
-            <img src="<?php echo EMPRESA_LOGO; ?>" class="h-10 rounded">
+            <img src="<?php echo EMPRESA_LOGO; ?>" class="h-10 rounded shadow-sm">
         </div>
 
         <div class="grid grid-cols-2 gap-10 mb-10 text-[11px] uppercase font-bold">
             <div class="bg-slate-50 p-6 rounded-3xl">
-                <p class="text-[9px] text-slate-400 mb-1">Empresa</p>
-                <p class="text-slate-800"><?php echo EMPRESA_NOMBRE; ?> (<?php echo EMPRESA_CIF; ?>)</p>
+                <p class="text-[9px] text-slate-400 mb-1 font-black">Empresa Responsable</p>
+                <p class="text-slate-800 font-black text-xs"><?php echo EMPRESA_NOMBRE; ?> (<?php echo EMPRESA_CIF; ?>)</p>
                 <p class="text-slate-500 font-normal mt-1 italic"><?php echo EMPRESA_DIRECCION; ?></p>
             </div>
             <div class="text-right p-6">
-                <p class="text-[9px] text-slate-400 mb-1">Trabajador/a</p>
-                <p class="text-slate-800"><?php echo $usuario_nombre; ?></p>
-                <p class="text-blue-600 mt-1 italic">Mes: <?php echo date('F Y', mktime(0,0,0,$mes,1,$anio)); ?></p>
+                <p class="text-[9px] text-slate-400 mb-1 font-black">Trabajador/a</p>
+                <p class="text-slate-800 font-black text-xs uppercase italic"><?php echo $usuario_nombre; ?></p>
+                <p class="text-blue-600 mt-1 font-black italic">Periodo: <?php echo date('F Y', mktime(0,0,0,$mes,1,$anio)); ?></p>
             </div>
         </div>
 
@@ -77,7 +93,7 @@ if ($userId) {
                     <th class="p-2 border border-slate-900">Entrada</th>
                     <th class="p-2 border border-slate-900">Salida</th>
                     <th class="p-2 border border-slate-900 text-center">GPS OK</th>
-                    <th class="p-2 border border-slate-900 text-right">Horas</th>
+                    <th class="p-2 border border-slate-900 text-right">Horas Netas</th>
                 </tr>
             </thead>
             <tbody class="text-[10px] font-bold">
@@ -109,14 +125,14 @@ if ($userId) {
                     <td class="p-1 border border-slate-200"><?php echo $h_e; ?></td>
                     <td class="p-1 border border-slate-200"><?php echo $h_s; ?></td>
                     <td class="p-1 border border-slate-200 text-center font-black <?php echo ($gps=='SÍ')?'text-emerald-600':''; ?>"><?php echo $gps; ?></td>
-                    <td class="p-1 border border-slate-200 text-right font-black"><?php echo $h_t; ?></td>
+                    <td class="p-1 border border-slate-200 text-right font-black text-slate-800 italic"><?php echo $h_t; ?></td>
                 </tr>
                 <?php endfor; ?>
             </tbody>
             <tfoot>
                 <tr class="bg-slate-100 font-black">
                     <td colspan="4" class="p-4 border border-slate-900 text-right uppercase text-[9px]">Cómputo Total del Mes</td>
-                    <td class="p-4 border border-slate-900 text-right text-sm"><?php echo floor($totalS/3600); ?>h <?php echo floor(($totalS/60)%60); ?>m</td>
+                    <td class="p-4 border border-slate-900 text-right text-sm italic"><?php echo floor($totalS/3600); ?>h <?php echo floor(($totalS/60)%60); ?>m</td>
                 </tr>
             </tfoot>
         </table>
