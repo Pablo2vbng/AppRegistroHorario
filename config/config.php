@@ -4,18 +4,18 @@ date_default_timezone_set('Europe/Madrid');
 
 // 2. PARÁMETROS DE EMPRESA
 define('EMPRESA_NOMBRE', 'CV TOOLS S.L.');
-define('EMPRESA_CIF', 'B-12345678');
+define('EMPRESA_CIF', 'B-96573613');
 define('EMPRESA_SEDE', 'Benigànim (Valencia)');
-define('EMPRESA_DIRECCION', 'Polígono Industrial de Benigànim');
+define('EMPRESA_DIRECCION', 'Avda. Camino de Albaida S/N');
 define('EMPRESA_LOGO', 'assets/img/logoCvTools.jpg');
 
-// 3. COORDENADAS OFICINA (Pon aquí las reales de tu ubicación)
-define('OFICINA_LAT', 38.939123); // <--- CAMBIA ESTO
-define('OFICINA_LNG', -0.443456); // <--- CAMBIA ESTO
-define('RADIO_PERMITIDO', 200);   // Metros de margen (precisión GPS)
+// 3. COORDENADAS OFICINA  
+define('OFICINA_LAT', 38.939123);   
+define('OFICINA_LNG', -0.443456);   
+define('RADIO_PERMITIDO', 300);    
 
 // 4. RRHH
-define('GESTORA_NOMBRE', 'Carmen');
+define('GESTORA_NOMBRE', 'SuperAdmin');
 define('GESTORA_EMAIL', 'carmen@cvtools.es');
 define('GESTORA_WHATSAPP', '34687166120');
 
