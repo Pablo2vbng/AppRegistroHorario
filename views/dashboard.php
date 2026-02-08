@@ -51,7 +51,8 @@ if ($esAdmin) {
     // Monitor y Solicitudes (Solo Empleados)
     $pendientes = $pdo->query("SELECT COUNT(*) FROM ausencias WHERE estado = 'pendiente'")->fetchColumn();
     
-    $estadoPlantilla = $pdo->query("SELECT u.id, u.nombre, f.tipo as ultimo_estado FROM usuarios u LEFT JOIN (SELECT f1.usuario_id, f1.tipo FROM fichajes f1 WHERE f1.id = (SELECT MAX(f2.id) FROM fichajes f2 WHERE f2.usuario_id = f1.usuario_id AND DATE(f2.fecha_hora) = CURDATE())) f ON u.id = f.usuario_id WHERE u.rol = 'empleado' ORDER BY u.nombre ASC")->fetchAll();
+    // Muro con Fotos
+    $estadoPlantilla = $pdo->query("SELECT u.id, u.nombre, u.foto_url, f.tipo as ultimo_estado FROM usuarios u LEFT JOIN (SELECT f1.usuario_id, f1.tipo FROM fichajes f1 WHERE f1.id = (SELECT MAX(f2.id) FROM fichajes f2 WHERE f2.usuario_id = f1.usuario_id AND DATE(f2.fecha_hora) = CURDATE())) f ON u.id = f.usuario_id WHERE u.rol = 'empleado' ORDER BY u.nombre ASC")->fetchAll();
     
     $usuariosLista = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'empleado' ORDER BY nombre ASC")->fetchAll();
     
@@ -102,7 +103,6 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
     <div class="bg-slate-900 p-8 md:p-12 rounded-[50px] text-white shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
         <div class="relative z-10">
             <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-1">Hola, <?php echo explode(' ', $user['nombre'])[0]; ?> 👋</h1>
-            <p class="text-blue-400 font-bold text-xs uppercase tracking-[0.4em] italic">Benigànim • Sede Central</p>
         </div>
         <?php if($nextFest): ?>
             <div class="relative z-10 bg-white/5 backdrop-blur-xl px-6 py-4 rounded-[30px] border border-white/10 text-center">
@@ -153,9 +153,17 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                             </div>
                         <?php endforeach; ?>
                         <?php if(empty($ausenciasHoy) && !$festivoHoy): echo '<p class="text-slate-300 italic text-xs">Sin ausencias registradas hoy</p>'; endif; ?>
+                        
+                        <!-- LINK PERMANENTE A SOLICITUDES PARA ADMIN -->
+                        <div class="mt-6 border-t pt-4">
+                            <a href="index.php?p=gestion_ausencias" class="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline italic">
+                                <i class="fas fa-arrow-right mr-2"></i> Ir a Bandeja de Solicitudes
+                            </a>
+                        </div>
                     </div>
+                    
                     <?php if($pendientes > 0): ?>
-                        <a href="index.php?p=gestion_ausencias" class="bg-rose-500 text-white p-10 rounded-[40px] shadow-2xl text-center group transition hover:scale-105">
+                        <a href="index.php?p=gestion_ausencias" class="bg-rose-500 text-white p-10 rounded-[40px] shadow-2xl text-center group transition hover:scale-105 animate-bounce">
                             <p class="text-4xl font-black italic mb-1"><?php echo $pendientes; ?></p>
                             <p class="text-[9px] font-black uppercase tracking-widest">Validar Peticiones</p>
                         </a>
@@ -169,10 +177,11 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                     <div class="grid grid-cols-3 md:grid-cols-5 gap-8 text-center">
                         <?php foreach($estadoPlantilla as $p): 
                             $color = ($p['ultimo_estado'] == 'entrada' || $p['ultimo_estado'] == 'reanudar') ? 'bg-emerald-500' : (($p['ultimo_estado'] == 'pausa') ? 'bg-amber-400' : 'bg-slate-200');
+                            $avatar = $p['foto_url'] ?: 'https://ui-avatars.com/api/?background=random&name='.urlencode($p['nombre']);
                         ?>
                         <div class="flex flex-col items-center group">
                             <div class="relative mb-3">
-                                <div class="w-16 h-16 rounded-[24px] bg-slate-50 border-2 border-slate-100 flex items-center justify-center font-black text-slate-200 text-xl group-hover:scale-110 transition duration-300"><?php echo substr($p['nombre'], 0, 1); ?></div>
+                                <img src="<?php echo $avatar; ?>" class="w-16 h-16 rounded-[24px] bg-slate-50 border-2 border-slate-100 object-cover group-hover:scale-110 transition duration-300">
                                 <div class="absolute -top-1 -right-1 w-4 h-4 <?php echo $color; ?> border-2 border-white rounded-full shadow-md"></div>
                             </div>
                             <p class="text-[10px] font-black text-slate-700 uppercase italic"><?php echo explode(' ', $p['nombre'])[0]; ?></p>
@@ -183,16 +192,22 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
             </div>
         </div>
 
-    <!-- VISTA TRABAJADOR (PABLO/JUDITH) -->
+        <script>
+        new Chart(document.getElementById('chartProd'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 20 }] }, options: { plugins: { legend: { display: false } }, animation: { duration: 2000, easing: 'easeOutQuart' } } });
+        </script>
+
     <?php else: ?>
+        <!-- ==========================================
+             VISTA TRABAJADOR (PABLO/JUDITH)
+             ========================================== -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
             <!-- PANEL FICHAJE -->
             <div class="lg:col-span-2 bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 text-center flex flex-col justify-center">
                 <h2 class="text-[10px] font-black mb-10 uppercase tracking-[0.5em] text-slate-300 italic">Registro con Ubicación GPS</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <button onclick="fichar('entrada')" <?php echo ($miEstadoActual == 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-emerald-500 hover:bg-emerald-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-play mb-4 group-hover:scale-110 transition"></i> ENTRAR</button>
-                    <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-amber-400 hover:bg-amber-500 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-pause mb-4 group-hover:scale-110 transition"></i> PAUSA</button>
-                    <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'fuera' || $miEstadoActual == 'salida') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-rose-500 hover:bg-rose-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-power-off mb-4 group-hover:scale-110 transition"></i> SALIR</button>
+                    <button onclick="fichar('entrada')" <?php echo ($miEstadoActual == 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-emerald-500 hover:bg-emerald-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-play mb-4"></i> ENTRAR</button>
+                    <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-amber-400 hover:bg-amber-500 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-pause mb-4"></i> PAUSA</button>
+                    <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'fuera' || $miEstadoActual == 'salida') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-rose-500 hover:bg-rose-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-power-off mb-4"></i> SALIR</button>
                 </div>
                 <div class="mt-8 text-[10px] font-black text-slate-300 uppercase italic">Tu Estado: <span class="text-slate-900 border-b-2 border-emerald-500 pb-1 uppercase"><?php echo $miEstadoActual; ?></span></div>
             </div>
@@ -211,7 +226,8 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                         <p class="text-5xl font-black tracking-tighter mb-1"><?php echo round($user['dias_vacaciones_disponibles'], 2); ?></p>
                         <p class="text-[9px] font-black uppercase tracking-widest opacity-70">Días Libres para pedir</p>
                     </div>
-                    <a href="index.php?p=solicitudes" class="block text-center bg-slate-900 text-white py-5 rounded-3xl text-[11px] font-black uppercase tracking-widest shadow-lg hover:bg-blue-600 transition">Nueva Solicitud</a>
+                    <!-- BOTÓN DE SOLICITUD PARA EMPLEADO MUY VISIBLE -->
+                    <a href="index.php?p=solicitudes" class="block text-center bg-slate-900 text-white py-5 rounded-3xl text-[11px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition">Nueva Solicitud</a>
                 </div>
             </div>
         </div>
