@@ -51,7 +51,6 @@ if ($esAdmin) {
     // Monitor y Solicitudes (Solo Empleados)
     $pendientes = $pdo->query("SELECT COUNT(*) FROM ausencias WHERE estado = 'pendiente'")->fetchColumn();
     
-    // Muro con Fotos
     $estadoPlantilla = $pdo->query("SELECT u.id, u.nombre, u.foto_url, f.tipo as ultimo_estado FROM usuarios u LEFT JOIN (SELECT f1.usuario_id, f1.tipo FROM fichajes f1 WHERE f1.id = (SELECT MAX(f2.id) FROM fichajes f2 WHERE f2.usuario_id = f1.usuario_id AND DATE(f2.fecha_hora) = CURDATE())) f ON u.id = f.usuario_id WHERE u.rol = 'empleado' ORDER BY u.nombre ASC")->fetchAll();
     
     $usuariosLista = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'empleado' ORDER BY nombre ASC")->fetchAll();
@@ -93,14 +92,14 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
         <div class="bg-white border-l-8 <?php echo ($n['estado']=='aprobado')?'border-emerald-500':'border-rose-500'; ?> p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center animate-bounce">
             <div class="flex items-center gap-4">
                 <i class="fas fa-bell <?php echo ($n['estado']=='aprobado')?'text-emerald-500':'text-rose-500'; ?> text-xl"></i>
-                <p class="text-sm font-bold text-slate-800">Carmen ha <span class="underline"><?php echo strtoupper($n['estado']); ?></span> tu petición de <?php echo strtoupper($n['tipo']); ?>.</p>
+                <p class="text-sm font-bold text-slate-800 italic">Respuesta de Carmen: Tu petición de <?php echo strtoupper($n['tipo']); ?> ha sido <span class="underline"><?php echo strtoupper($n['estado']); ?></span>.</p>
             </div>
-            <button onclick="marcarLeida(<?php echo $n['id']; ?>)" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Ok</button>
+            <button onclick="marcarLeida(<?php echo $n['id']; ?>)" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Entendido</button>
         </div>
     <?php endforeach; endif; ?>
 
     <!-- BIENVENIDA -->
-    <div class="bg-slate-900 p-8 md:p-12 rounded-[50px] text-white shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden">
+    <div class="bg-slate-900 p-8 md:p-12 rounded-[50px] text-white shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden mx-2">
         <div class="relative z-10">
             <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-1">Hola, <?php echo explode(' ', $user['nombre'])[0]; ?> 👋</h1>
         </div>
@@ -114,13 +113,13 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
 
     <!-- VISTA CARMEN (ADMIN) -->
     <?php if($esAdmin): ?>
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 mx-2">
             
             <!-- ANALÍTICA PRODUCTIVIDAD -->
             <div class="lg:col-span-1 bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 flex flex-col items-center">
                 <form method="GET" class="w-full mb-8">
                     <input type="hidden" name="p" value="dashboard">
-                    <select name="ver_emp" onchange="this.form.submit()" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-blue-500 transition">
+                    <select name="ver_emp" onchange="this.form.submit()" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-blue-500 transition shadow-inner">
                         <option value="all">✨ TODA LA PLANTILLA</option>
                         <?php foreach($usuariosLista as $u): ?>
                             <option value="<?php echo $u['id']; ?>" <?php echo ($filtroEmp == $u['id'])?'selected':''; ?>><?php echo $u['nombre']; ?></option>
@@ -144,8 +143,8 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
             <div class="lg:col-span-2 space-y-10">
                 <div class="bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div class="flex-1">
-                        <h2 class="text-sm font-black text-slate-800 uppercase italic tracking-widest mb-6">Situación Hoy</h2>
-                        <?php if($festivoHoy): ?><div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-800 font-bold text-xs mb-2 italic uppercase">HOY ES: <?php echo $festivoHoy; ?></div><?php endif; ?>
+                        <h2 class="text-sm font-black text-slate-800 uppercase italic mb-6">Situación Hoy</h2>
+                        <?php if($festivoHoy): ?><div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-800 font-bold text-xs mb-2 italic">HOY ES: <?php echo strtoupper($festivoHoy); ?></div><?php endif; ?>
                         <?php foreach($ausenciasHoy as $a): ?>
                             <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
                                 <span class="font-black text-slate-700 text-xs italic"><?php echo $a['nombre']; ?></span>
@@ -181,7 +180,7 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                         ?>
                         <div class="flex flex-col items-center group">
                             <div class="relative mb-3">
-                                <img src="<?php echo $avatar; ?>" class="w-16 h-16 rounded-[24px] bg-slate-50 border-2 border-slate-100 object-cover group-hover:scale-110 transition duration-300">
+                                <img src="<?php echo $avatar; ?>" class="w-16 h-16 rounded-[24px] bg-slate-50 border-2 border-slate-100 object-cover group-hover:scale-110 transition duration-300 shadow-sm">
                                 <div class="absolute -top-1 -right-1 w-4 h-4 <?php echo $color; ?> border-2 border-white rounded-full shadow-md"></div>
                             </div>
                             <p class="text-[10px] font-black text-slate-700 uppercase italic"><?php echo explode(' ', $p['nombre'])[0]; ?></p>
@@ -192,22 +191,16 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
             </div>
         </div>
 
-        <script>
-        new Chart(document.getElementById('chartProd'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 20 }] }, options: { plugins: { legend: { display: false } }, animation: { duration: 2000, easing: 'easeOutQuart' } } });
-        </script>
-
+    <!-- VISTA TRABAJADOR (PABLO/JUDITH) -->
     <?php else: ?>
-        <!-- ==========================================
-             VISTA TRABAJADOR (PABLO/JUDITH)
-             ========================================== -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 mx-2">
             <!-- PANEL FICHAJE -->
             <div class="lg:col-span-2 bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 text-center flex flex-col justify-center">
                 <h2 class="text-[10px] font-black mb-10 uppercase tracking-[0.5em] text-slate-300 italic">Registro con Ubicación GPS</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <button onclick="fichar('entrada')" <?php echo ($miEstadoActual == 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-emerald-500 hover:bg-emerald-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-play mb-4"></i> ENTRAR</button>
-                    <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-amber-400 hover:bg-amber-500 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-pause mb-4"></i> PAUSA</button>
-                    <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'fuera' || $miEstadoActual == 'salida') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-rose-500 hover:bg-rose-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-power-off mb-4"></i> SALIR</button>
+                    <button onclick="fichar('entrada')" <?php echo ($miEstadoActual == 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-emerald-500 hover:bg-emerald-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-play mb-4 group-hover:scale-110 transition"></i> ENTRAR</button>
+                    <button onclick="fichar('pausa')" <?php echo ($miEstadoActual != 'entrada') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-amber-400 hover:bg-amber-500 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-pause mb-4 group-hover:scale-110 transition"></i> PAUSA</button>
+                    <button onclick="fichar('salida')" <?php echo ($miEstadoActual == 'fuera' || $miEstadoActual == 'salida') ? 'disabled' : ''; ?> class="disabled:opacity-10 bg-rose-500 hover:bg-rose-600 text-white py-12 rounded-[45px] font-black text-2xl shadow-xl active:scale-95 transition flex flex-col items-center group"><i class="fas fa-power-off mb-4 group-hover:scale-110 transition"></i> SALIR</button>
                 </div>
                 <div class="mt-8 text-[10px] font-black text-slate-300 uppercase italic">Tu Estado: <span class="text-slate-900 border-b-2 border-emerald-500 pb-1 uppercase"><?php echo $miEstadoActual; ?></span></div>
             </div>

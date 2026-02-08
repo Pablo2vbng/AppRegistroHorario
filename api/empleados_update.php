@@ -14,17 +14,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $horario = $_POST['horario'];
     $vac_totales = $_POST['vac_totales'];
     $vac_disponibles = $_POST['vac_disponibles'];
+    $horas_jornada = $_POST['horas_jornada'];
+    // Convertimos el array de días en una cadena "1,2,3..."
+    $dias_laborables = isset($_POST['dias']) ? implode(',', $_POST['dias']) : '1,2,3,4,5';
     $password = $_POST['password'] ?? '';
 
     try {
         $pdo->beginTransaction();
 
-        // 1. Actualizar datos base
-        $sql = "UPDATE usuarios SET nombre = ?, email = ?, horario = ?, dias_vacaciones_totales = ?, dias_vacaciones_disponibles = ? WHERE id = ?";
+        $sql = "UPDATE usuarios SET nombre = ?, email = ?, horario = ?, dias_vacaciones_totales = ?, dias_vacaciones_disponibles = ?, horas_jornada = ?, dias_laborables = ? WHERE id = ?";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$nombre, $email, $horario, $vac_totales, $vac_disponibles, $id]);
+        $stmt->execute([$nombre, $email, $horario, $vac_totales, $vac_disponibles, $horas_jornada, $dias_laborables, $id]);
 
-        // 2. Si hay password nueva, hashearla y actualizar
         if (!empty($password)) {
             $hashed = password_hash($password, PASSWORD_DEFAULT);
             $stmtP = $pdo->prepare("UPDATE usuarios SET password = ? WHERE id = ?");
