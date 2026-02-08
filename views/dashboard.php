@@ -51,6 +51,7 @@ if ($esAdmin) {
     // Monitor y Solicitudes (Solo Empleados)
     $pendientes = $pdo->query("SELECT COUNT(*) FROM ausencias WHERE estado = 'pendiente'")->fetchColumn();
     
+    // Muro con Fotos (Excluyendo Dueños)
     $estadoPlantilla = $pdo->query("SELECT u.id, u.nombre, u.foto_url, f.tipo as ultimo_estado FROM usuarios u LEFT JOIN (SELECT f1.usuario_id, f1.tipo FROM fichajes f1 WHERE f1.id = (SELECT MAX(f2.id) FROM fichajes f2 WHERE f2.usuario_id = f1.usuario_id AND DATE(f2.fecha_hora) = CURDATE())) f ON u.id = f.usuario_id WHERE u.rol = 'empleado' ORDER BY u.nombre ASC")->fetchAll();
     
     $usuariosLista = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'empleado' ORDER BY nombre ASC")->fetchAll();
@@ -89,20 +90,18 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
 
     <!-- AVISOS DE RESPUESTA (Solo Trabajador) -->
     <?php if(!$esAdmin): foreach($notifList as $n): ?>
-        <div class="bg-white border-l-8 <?php echo ($n['estado']=='aprobado')?'border-emerald-500':'border-rose-500'; ?> p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center animate-bounce">
+        <div class="bg-white border-l-8 <?php echo ($n['estado']=='aprobado')?'border-emerald-500':'border-rose-500'; ?> p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center animate-bounce mx-2">
             <div class="flex items-center gap-4">
                 <i class="fas fa-bell <?php echo ($n['estado']=='aprobado')?'text-emerald-500':'text-rose-500'; ?> text-xl"></i>
                 <p class="text-sm font-bold text-slate-800 italic">Respuesta de Carmen: Tu petición de <?php echo strtoupper($n['tipo']); ?> ha sido <span class="underline"><?php echo strtoupper($n['estado']); ?></span>.</p>
             </div>
-            <button onclick="marcarLeida(<?php echo $n['id']; ?>)" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Entendido</button>
+            <button onclick="marcarLeida(<?php echo $n['id']; ?>)" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Ok</button>
         </div>
     <?php endforeach; endif; ?>
 
     <!-- BIENVENIDA -->
     <div class="bg-slate-900 p-8 md:p-12 rounded-[50px] text-white shadow-2xl mb-10 flex flex-col md:flex-row justify-between items-center gap-8 relative overflow-hidden mx-2">
-        <div class="relative z-10">
-            <h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-1">Hola, <?php echo explode(' ', $user['nombre'])[0]; ?> 👋</h1>
-        </div>
+        <div class="relative z-10 text-center md:text-left"><h1 class="text-3xl md:text-4xl font-black italic uppercase tracking-tighter mb-1">Hola, <?php echo explode(' ', $user['nombre'])[0]; ?> 👋</h1></div>
         <?php if($nextFest): ?>
             <div class="relative z-10 bg-white/5 backdrop-blur-xl px-6 py-4 rounded-[30px] border border-white/10 text-center">
                 <p class="text-[9px] font-black text-blue-300 uppercase tracking-widest leading-none mb-1">Próximo Festivo</p>
@@ -143,8 +142,8 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
             <div class="lg:col-span-2 space-y-10">
                 <div class="bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div class="flex-1">
-                        <h2 class="text-sm font-black text-slate-800 uppercase italic mb-6">Situación Hoy</h2>
-                        <?php if($festivoHoy): ?><div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-800 font-bold text-xs mb-2 italic">HOY ES: <?php echo strtoupper($festivoHoy); ?></div><?php endif; ?>
+                        <h2 class="text-sm font-black text-slate-800 uppercase italic tracking-widest mb-6">Situación Hoy</h2>
+                        <?php if($festivoHoy): ?><div class="bg-blue-50 p-4 rounded-2xl border border-blue-100 text-blue-800 font-bold text-xs mb-2 italic uppercase">HOY ES: <?php echo $festivoHoy; ?></div><?php endif; ?>
                         <?php foreach($ausenciasHoy as $a): ?>
                             <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-2">
                                 <span class="font-black text-slate-700 text-xs italic"><?php echo $a['nombre']; ?></span>
@@ -152,15 +151,8 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                             </div>
                         <?php endforeach; ?>
                         <?php if(empty($ausenciasHoy) && !$festivoHoy): echo '<p class="text-slate-300 italic text-xs">Sin ausencias registradas hoy</p>'; endif; ?>
-                        
-                        <!-- LINK PERMANENTE A SOLICITUDES PARA ADMIN -->
-                        <div class="mt-6 border-t pt-4">
-                            <a href="index.php?p=gestion_ausencias" class="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline italic">
-                                <i class="fas fa-arrow-right mr-2"></i> Ir a Bandeja de Solicitudes
-                            </a>
-                        </div>
+                        <div class="mt-6 border-t pt-4"><a href="index.php?p=gestion_ausencias" class="text-xs font-black text-blue-600 uppercase tracking-widest hover:underline italic"><i class="fas fa-arrow-right mr-2"></i> Ir a Bandeja de Solicitudes</a></div>
                     </div>
-                    
                     <?php if($pendientes > 0): ?>
                         <a href="index.php?p=gestion_ausencias" class="bg-rose-500 text-white p-10 rounded-[40px] shadow-2xl text-center group transition hover:scale-105 animate-bounce">
                             <p class="text-4xl font-black italic mb-1"><?php echo $pendientes; ?></p>
@@ -171,7 +163,7 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
 
                 <div class="bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 md:p-12">
                     <h2 class="text-sm font-black text-slate-800 uppercase italic tracking-widest mb-10 flex items-center">
-                        <span class="w-2 h-2 bg-emerald-500 rounded-full mr-3 animate-pulse"></span> Equipo en Vivo
+                        <span class="w-2 h-2 bg-emerald-500 rounded-full mr-3 animate-pulse"></span> Equipo en Benigànim
                     </h2>
                     <div class="grid grid-cols-3 md:grid-cols-5 gap-8 text-center">
                         <?php foreach($estadoPlantilla as $p): 
@@ -191,10 +183,12 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
             </div>
         </div>
 
-    <!-- VISTA TRABAJADOR (PABLO/JUDITH) -->
+        <script>
+        new Chart(document.getElementById('chartProd'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 20 }] }, options: { plugins: { legend: { display: false } }, animation: { duration: 2000, easing: 'easeOutQuart' } } });
+        </script>
+
     <?php else: ?>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 mx-2">
-            <!-- PANEL FICHAJE -->
             <div class="lg:col-span-2 bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 text-center flex flex-col justify-center">
                 <h2 class="text-[10px] font-black mb-10 uppercase tracking-[0.5em] text-slate-300 italic">Registro con Ubicación GPS</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -205,45 +199,23 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
                 <div class="mt-8 text-[10px] font-black text-slate-300 uppercase italic">Tu Estado: <span class="text-slate-900 border-b-2 border-emerald-500 pb-1 uppercase"><?php echo $miEstadoActual; ?></span></div>
             </div>
 
-            <!-- PRODUCTIVIDAD Y SOLICITUDES -->
             <div class="bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 flex flex-col items-center justify-between">
                 <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 italic">Mi Rendimiento Mensual</p>
-                <div class="relative w-full aspect-square max-w-[160px] mb-6">
-                    <canvas id="chartProdWorker"></canvas>
-                    <div class="absolute inset-0 flex items-center justify-center font-black text-2xl text-slate-800 italic">
-                        <?php echo ($horasObjetivo > 0) ? round(($horasReales/$horasObjetivo)*100) : 0; ?>%
-                    </div>
-                </div>
-                <div class="w-full space-y-4">
-                    <div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-xl text-center">
-                        <p class="text-5xl font-black tracking-tighter mb-1"><?php echo round($user['dias_vacaciones_disponibles'], 2); ?></p>
-                        <p class="text-[9px] font-black uppercase tracking-widest opacity-70">Días Libres para pedir</p>
-                    </div>
-                    <!-- BOTÓN DE SOLICITUD PARA EMPLEADO MUY VISIBLE -->
-                    <a href="index.php?p=solicitudes" class="block text-center bg-slate-900 text-white py-5 rounded-3xl text-[11px] font-black uppercase tracking-widest shadow-lg hover:bg-emerald-600 transition">Nueva Solicitud</a>
-                </div>
+                <div class="relative w-full aspect-square max-w-[160px] mb-6"><canvas id="chartProdWorker"></canvas><div class="absolute inset-0 flex items-center justify-center font-black text-2xl text-slate-800 italic"><?php echo ($horasObjetivo > 0) ? round(($horasReales/$horasObjetivo)*100) : 0; ?>%</div></div>
+                <div class="w-full space-y-4"><div class="bg-blue-600 text-white p-6 rounded-[35px] shadow-xl text-center"><p class="text-5xl font-black tracking-tighter mb-1"><?php echo round($user['dias_vacaciones_disponibles'], 2); ?></p><p class="text-[9px] font-black uppercase tracking-widest opacity-70">Días Disponibles</p></div><a href="index.php?p=solicitudes" class="block text-center bg-slate-900 text-white py-5 rounded-3xl text-[11px] font-black uppercase shadow-lg transition">Nueva Solicitud</a></div>
             </div>
         </div>
+        <script>new Chart(document.getElementById('chartProdWorker'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 15 }] }, options: { plugins: { legend: { display: false } } } });</script>
     <?php endif; ?>
 
 </div>
 
 <script>
-// Gráficos Donut
-<?php if($esAdmin): ?>
-    new Chart(document.getElementById('chartProd'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 20 }] }, options: { plugins: { legend: { display: false } }, animation: { duration: 2000, easing: 'easeOutQuart' } } });
-<?php else: ?>
-    new Chart(document.getElementById('chartProdWorker'), { type: 'doughnut', data: { datasets: [{ data: [<?php echo $horasReales; ?>, <?php echo max(0, $horasObjetivo - $horasReales); ?>], backgroundColor: ['#10b981', '#f1f5f9'], borderWidth: 0, cutout: '85%', borderRadius: 15 }] }, options: { plugins: { legend: { display: false } } } });
-<?php endif; ?>
-
 function fichar(tipo) {
     Swal.fire({ title: 'Localizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     navigator.geolocation.getCurrentPosition(pos => {
-        fetch('api/fichar.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `tipo=${tipo}&lat=${pos.coords.latitude}&lng=${pos.coords.longitude}` })
-        .then(res => res.json()).then(data => location.reload());
-    }, err => { Swal.fire({ icon: 'error', title: 'GPS Requerido', text: 'Activa la ubicación para fichar en Benigànim.' }); });
+        fetch('api/fichar.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `tipo=${tipo}&lat=${pos.coords.latitude}&lng=${pos.coords.longitude}` }).then(res => res.json()).then(data => location.reload());
+    }, err => { Swal.fire({ icon: 'error', title: 'GPS Requerido', text: 'Activa la ubicación para fichar.' }); });
 }
-function marcarLeida(id) {
-    fetch('api/notificacion_leida.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `id=${id}` }).then(() => location.reload());
-}
+function marcarLeida(id) { fetch('api/notificacion_leida.php', { method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: `id=${id}` }).then(() => location.reload()); }
 </script>
