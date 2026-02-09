@@ -25,19 +25,18 @@ $ausencias = $pdo->query("SELECT a.*, u.nombre as emp FROM ausencias a JOIN usua
                 
                 <h3 class="text-xl font-black text-slate-800 uppercase italic mb-4"><?php echo $a['emp']; ?></h3>
 
-                <!-- INFO DETALLADA -->
+                <!-- INFO DETALLADA CORREGIDA -->
                 <div class="bg-slate-50 p-5 rounded-3xl mb-6 space-y-2">
                     <div class="flex items-center text-xs font-bold text-slate-600">
                         <i class="fas <?php echo $icon; ?> mr-3 text-blue-500"></i>
                         <?php if($a['tipo'] == 'permuta'): ?>
                             Libre <?php echo date('d/m', strtotime($a['fecha_inicio'])); ?> → Trabaja <?php echo date('d/m', strtotime($a['fecha_permuta_trabajo'])); ?>
+                        <?php elseif($a['es_por_horas']): ?>
+                            Día <?php echo date('d/m', strtotime($a['fecha_inicio'])); ?> <span class="text-blue-600 ml-1 font-black">(<?php echo $a['horas_solicitadas']; ?>h solicitadas)</span>
                         <?php else: ?>
                             <?php echo date('d/m', strtotime($a['fecha_inicio'])); ?> al <?php echo date('d/m', strtotime($a['fecha_fin'])); ?>
                         <?php endif; ?>
                     </div>
-                    <?php if($a['es_por_horas']): ?>
-                        <div class="text-[10px] font-black text-blue-600 uppercase italic">Duración: <?php echo $a['horas_solicitadas']; ?> Horas</div>
-                    <?php endif; ?>
                 </div>
 
                 <!-- BOTÓN VER BAJA MÉDICA -->
@@ -51,7 +50,7 @@ $ausencias = $pdo->query("SELECT a.*, u.nombre as emp FROM ausencias a JOIN usua
                     <p class="text-[10px] text-slate-400 italic mb-6">"<?php echo $a['motivo']; ?>"</p>
                 <?php endif; ?>
 
-                <!-- CONFIGURACIÓN CARMEN -->
+                <!-- CONFIGURACIÓN ADMIN -->
                 <div class="bg-slate-900 text-white p-6 rounded-3xl mb-8">
                     <div class="flex items-center justify-between">
                         <span class="text-[9px] font-black uppercase tracking-widest">¿Es recuperable?</span>

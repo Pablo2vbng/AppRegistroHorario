@@ -4,7 +4,7 @@ $userId = $_GET['user_id'] ?? '';
 $mes = $_GET['mes'] ?? date('m');
 $anio = $_GET['anio'] ?? date('Y');
 
-// Filtro: Solo empleados reales (Excluimos Carmen, Jaime, Remi)
+// Filtro: Solo empleados reales (Excluimo ADMINS)
 $usuarios = $pdo->query("SELECT id, nombre FROM usuarios WHERE rol = 'empleado' ORDER BY nombre ASC")->fetchAll();
 
 $datos = []; $usuario_nombre = "";

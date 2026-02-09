@@ -17,7 +17,7 @@ foreach ($fichajes as $f) {
     <div class="flex flex-col md:flex-row justify-between items-center mb-10 no-print gap-4">
         <div>
             <h1 class="text-2xl font-black text-slate-800 uppercase italic">Mi Jornada Efectiva</h1>
-            <p class="text-slate-400 font-bold text-sm">Registro de tiempos en Benigànim</p>
+            <p class="text-slate-400 font-bold text-sm">Registro de tiempos</p>
         </div>
         <button onclick="window.print()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl">
             <i class="fas fa-print mr-2"></i> Imprimir Registro

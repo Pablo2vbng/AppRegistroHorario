@@ -93,7 +93,7 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
     <!-- NOTIFICACIONES -->
     <?php if(!$esAdmin): foreach($notifList as $n): ?>
         <div class="bg-white border-l-8 <?php echo ($n['estado']=='aprobado')?'border-emerald-500':'border-rose-500'; ?> p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center animate-bounce mx-2">
-            <div class="flex items-center gap-4"><i class="fas fa-bell <?php echo ($n['estado']=='aprobado')?'text-emerald-500':'text-rose-500'; ?> text-xl"></i><p class="text-sm font-bold">Respuesta de Carmen: Tu petición de <?php echo strtoupper($n['tipo']); ?> ha sido <span class="underline"><?php echo strtoupper($n['estado']); ?></span>.</p></div>
+            <div class="flex items-center gap-4"><i class="fas fa-bell <?php echo ($n['estado']=='aprobado')?'text-emerald-500':'text-rose-500'; ?> text-xl"></i><p class="text-sm font-bold">Respuesta de RRHH: Tu petición de <?php echo strtoupper($n['tipo']); ?> ha sido <span class="underline"><?php echo strtoupper($n['estado']); ?></span>.</p></div>
             <button onclick="marcarLeida(<?php echo $n['id']; ?>)" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Ok</button>
         </div>
     <?php endforeach; endif; ?>

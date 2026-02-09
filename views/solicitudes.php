@@ -23,7 +23,6 @@ $mis_solicitudes = $stmt->fetchAll();
                         </select>
                     </div>
 
-                    <!-- CAMPO ESPECIAL BAJA MÉDICA -->
                     <div id="div_archivo" class="hidden animate-in fade-in zoom-in duration-300">
                         <label class="block text-[10px] font-black text-rose-500 uppercase mb-3 italic">Adjuntar Parte de Baja / Justificante</label>
                         <div class="relative group">
@@ -77,13 +76,14 @@ $mis_solicitudes = $stmt->fetchAll();
                     <div>
                         <p class="font-black text-slate-800 uppercase text-[10px] tracking-widest"><?php echo $sol['tipo']; ?></p>
                         <p class="text-slate-500 font-bold text-sm">
-                            <?php echo date('d M', strtotime($sol['fecha_inicio'])); ?> 
-                            <?php if($sol['tipo'] == 'permuta'): ?>
+                            <?php echo date('d M Y', strtotime($sol['fecha_inicio'])); ?> 
+                            
+                            <?php if($sol['es_por_horas']): ?>
+                                <span class="text-blue-600 ml-1 font-black"> (<?php echo $sol['horas_solicitadas']; ?>h)</span>
+                            <?php elseif($sol['tipo'] == 'permuta'): ?>
                                 <i class="fas fa-arrow-right mx-2 text-[10px] text-slate-300"></i> Trabaja el <?php echo date('d M', strtotime($sol['fecha_permuta_trabajo'])); ?>
-                            <?php elseif($sol['es_por_horas']): ?>
-                                <span class="text-blue-500 ml-2">(<?php echo $sol['horas_solicitadas']; ?>h)</span>
                             <?php else: ?>
-                                al <?php echo date('d M', strtotime($sol['fecha_fin'])); ?>
+                                al <?php echo date('d M Y', strtotime($sol['fecha_fin'])); ?>
                             <?php endif; ?>
                         </p>
                     </div>
@@ -109,7 +109,10 @@ function toggleForm(val) {
     document.getElementById('div_archivo').classList.toggle('hidden', val !== 'medico');
     document.getElementById('check_horas_div').classList.toggle('hidden', val === 'vacaciones');
     document.getElementById('div_permuta').classList.toggle('hidden', val !== 'permuta');
-    document.getElementById('div_f2').classList.toggle('hidden', val === 'permuta');
+    
+    // Si es permuta u horas, ocultamos fecha fin
+    const esPorHoras = document.getElementById('es_por_horas').checked;
+    document.getElementById('div_f2').classList.toggle('hidden', val === 'permuta' || esPorHoras);
     
     const lbl1 = document.getElementById('lbl_f1');
     lbl1.innerText = (val === 'permuta') ? "Día que NO trabajaré" : "Fecha Inicio";
@@ -127,7 +130,7 @@ document.getElementById('formSolicitud').onsubmit = function(e) {
     fetch('api/solicitudes_crear.php', { method: 'POST', body: new FormData(this) })
     .then(res => res.json()).then(data => {
         if(data.success) {
-            Swal.fire({ icon: 'success', title: '¡Petición Enviada!', text: 'Carmen la recibirá en su bandeja.', confirmButtonColor: '#0f172a' })
+            Swal.fire({ icon: 'success', title: '¡Petición Enviada!', text: 'RRHH la recibirá en su bandeja.', confirmButtonColor: '#0f172a' })
             .then(() => location.reload());
         } else {
             Swal.fire('Error', data.message, 'error');

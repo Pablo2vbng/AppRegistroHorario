@@ -2,24 +2,49 @@
 require_once '../config/config.php';
 header('Content-Type: application/json');
 
-if ($_SESSION['rol'] != 'admin') exit();
+if (!isset($_SESSION['usuario_id'])) exit();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $fecha = $_POST['fecha'];
-    $nombre = $_POST['nombre'];
-    $tipo = $_POST['tipo']; // nacional, comunidad, local
-    $descuenta = isset($_POST['descuenta']) ? 1 : 0;
+    $usuario_id = $_SESSION['usuario_id'];
+    $tipo = $_POST['tipo'];
+    $inicio = $_POST['fecha_inicio'];
+    
+    // CORRECCIÓN: Lógica para determinar la fecha de fin
+    $es_por_horas = isset($_POST['es_por_horas']) ? 1 : 0;
+    
+    if ($es_por_horas) {
+        // Si es por horas, la fecha fin es el mismo día
+        $fin = $inicio;
+    } else {
+        // Si no es por horas, usamos la fecha fin enviada o, si está vacía, la de inicio
+        $fin = (!empty($_POST['fecha_fin'])) ? $_POST['fecha_fin'] : $inicio;
+    }
+
+    $permuta_trabajo = $_POST['fecha_permuta_trabajo'] ?? null;
+    $horas = ($es_por_horas) ? ($_POST['horas_solicitadas'] ?? null) : null;
+    $motivo = $_POST['motivo'] ?? '';
+    $ruta_archivo = null;
+
+    // LÓGICA DE SUBIDA DE PARTE DE BAJA
+    if (isset($_FILES['justificante']) && $_FILES['justificante']['error'] == 0) {
+        $uploadDir = '../uploads/justificantes/';
+        if (!file_exists($uploadDir)) mkdir($uploadDir, 0777, true);
+        
+        $extension = pathinfo($_FILES['justificante']['name'], PATHINFO_EXTENSION);
+        $fileName = "BAJA_" . $usuario_id . "_" . time() . "." . $extension;
+        $targetFile = $uploadDir . $fileName;
+        
+        if (move_uploaded_file($_FILES['justificante']['tmp_name'], $targetFile)) {
+            $ruta_archivo = 'uploads/justificantes/' . $fileName;
+        }
+    }
 
     try {
-        $pdo->beginTransaction();
-        $stmt = $pdo->prepare("INSERT INTO festivos (fecha, nombre, tipo, descuenta_vacaciones) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$fecha, $nombre, $tipo, $descuenta]);
-
-        // Si es cierre de empresa, restamos 1 día a todos los empleados
-        if ($descuenta == 1) {
-            $pdo->query("UPDATE usuarios SET dias_vacaciones_disponibles = dias_vacaciones_disponibles - 1 WHERE rol = 'empleado'");
-        }
-        $pdo->commit();
+        $sql = "INSERT INTO ausencias (usuario_id, tipo, fecha_inicio, fecha_fin, fecha_permuta_trabajo, es_por_horas, horas_solicitadas, motivo, archivo_justificante) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$usuario_id, $tipo, $inicio, $fin, $permuta_trabajo, $es_por_horas, $horas, $motivo, $ruta_archivo]);
         echo json_encode(['success' => true]);
-    } catch (PDOException $e) { $pdo->rollBack(); echo json_encode(['success' => false, 'message' => $e->getMessage()]); }
+    } catch (PDOException $e) {
+        echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+    }
 }
