@@ -8,11 +8,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $usuario_id = $_SESSION['usuario_id'];
     $tipo = $_POST['tipo'];
     $inicio = $_POST['fecha_inicio'];
-    $fin = $_POST['fecha_fin'] ?? $inicio;
-    $permuta_trabajo = $_POST['fecha_permuta_trabajo'] ?? null;
+    
+    // CORRECCIÓN DE FECHAS
     $es_por_horas = isset($_POST['es_por_horas']) ? 1 : 0;
-    $horas = $_POST['horas_solicitadas'] ?? null;
-    $motivo = $_POST['motivo'] ?? '';
+    
+    if ($es_por_horas) {
+        $fin = $inicio; // Si es por horas, fin es el mismo día
+    } else {
+        $fin = (!empty($_POST['fecha_fin'])) ? $_POST['fecha_fin'] : $inicio;
+    }
+
+    $permuta_trabajo = $_POST['fecha_permuta_trabajo'] ?? null;
+    $horas = ($es_por_horas) ? ($_POST['horas_solicitadas'] ?? null) : null;
+    $motivo = $_POST['motivo'] ?? ''; // Campo recuperado
     $ruta_archivo = null;
 
     // LÓGICA DE SUBIDA DE PARTE DE BAJA

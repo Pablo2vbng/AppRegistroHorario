@@ -57,6 +57,12 @@ $mis_solicitudes = $stmt->fetchAll();
                         <input type="number" name="horas_solicitadas" step="0.5" placeholder="Ej: 3.5" class="w-full bg-blue-50 border-2 border-blue-100 p-4 rounded-2xl font-black text-blue-700">
                     </div>
 
+                    <!-- CAMPO DE COMENTARIOS RECUPERADO -->
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-2">Motivo / Comentarios</label>
+                        <textarea name="motivo" rows="3" class="w-full bg-slate-50 border p-4 rounded-2xl font-bold text-slate-700 outline-none resize-none" placeholder="Opcional..."></textarea>
+                    </div>
+
                     <button type="submit" class="w-full bg-blue-600 text-white font-black py-5 rounded-3xl shadow-xl uppercase text-[10px] tracking-widest transition hover:bg-slate-900 active:scale-95">Enviar Petición</button>
                 </form>
             </div>
@@ -110,7 +116,6 @@ function toggleForm(val) {
     document.getElementById('check_horas_div').classList.toggle('hidden', val === 'vacaciones');
     document.getElementById('div_permuta').classList.toggle('hidden', val !== 'permuta');
     
-    // Si es permuta u horas, ocultamos fecha fin
     const esPorHoras = document.getElementById('es_por_horas').checked;
     document.getElementById('div_f2').classList.toggle('hidden', val === 'permuta' || esPorHoras);
     
