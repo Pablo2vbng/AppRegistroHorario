@@ -27,6 +27,7 @@ if ($userId) {
     </div>
 
     <!-- FILTROS -->
+    <?php if($_SESSION['rol'] == 'admin'): ?>
     <div class="bg-white p-6 rounded-[35px] border border-slate-200 mb-10 no-print shadow-sm mx-2">
         <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <input type="hidden" name="p" value="informe_legal">
@@ -45,6 +46,7 @@ if ($userId) {
             <button type="submit" class="bg-slate-800 text-white p-4 rounded-2xl font-black uppercase text-[10px]">Generar</button>
         </form>
     </div>
+    <?php endif; ?>
 
     <?php if ($userId && $usuario_nombre): ?>
     <!-- DOCUMENTO -->
