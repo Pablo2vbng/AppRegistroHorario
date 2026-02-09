@@ -47,7 +47,9 @@ $totalPendientes = $stmtCount->fetchColumn();
         <p class="text-slate-600 mt-6 border-t border-slate-800 pt-4 mb-2">Mi Espacio</p>
         <a href="index.php?p=perfil" class="flex items-center p-3 hover:bg-slate-800 rounded-xl text-purple-400"><i class="fas fa-user-circle mr-3"></i> Mi Perfil</a>
         <?php if($_SESSION['rol'] != 'admin'): ?>
-            <a href="index.php?p=jornada" class="flex items-center p-3 hover:bg-slate-800 rounded-xl text-emerald-400"><i class="fas fa-clock mr-3"></i> Mi Jornada</a>
+            <p class="px-4 py-3 text-[10px] font-black text-slate-500 uppercase tracking-widest mt-6 border-t border-slate-800 pt-6 italic">Mis Informes</p>
+            <a href="index.php?p=informe_legal&user_id=<?php echo $_SESSION['usuario_id']; ?>" class="flex items-center p-3 rounded-xl hover:bg-slate-800 transition text-emerald-400"><i class="fas fa-file-invoice mr-3"></i> Mensual</a>
+            <a href="index.php?p=informe_global" class="flex items-center p-3 rounded-xl hover:bg-slate-800 transition text-blue-400"><i class="fas fa-file-export mr-3"></i> Anual</a>
             <a href="index.php?p=solicitudes" class="flex items-center p-3 hover:bg-slate-800 rounded-xl text-amber-500"><i class="fas fa-paper-plane mr-3"></i> Solicitudes</a>
         <?php endif; ?>
 
