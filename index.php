@@ -3,7 +3,8 @@ require_once 'config/config.php';
 
 // LOGIN
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'])) {
-    $email = trim($_POST['email']); $pass = trim($_POST['password']);
+    $email = trim($_POST['email']); 
+    $pass = trim($_POST['password']);
     $stmt = $pdo->prepare("SELECT * FROM usuarios WHERE email = ?");
     $stmt->execute([$email]); $user = $stmt->fetch();
     $loginOk = false;
