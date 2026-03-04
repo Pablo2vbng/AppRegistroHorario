@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
 
         // 2. Lógica de saldo de vacaciones
-        // Solo descontamos si se aprueba AHORA y no estaba aprobada antes (para evitar duplicados)
+        // CUMPLE PUNTO 3 y 4: Al exigir $recuperable == 1, los permisos médicos (0) no restan vacaciones.
         if ($estado == 'aprobado' && $sol['estado'] != 'aprobado' && $recuperable == 1) {
             $diasARestar = 0;
 
@@ -47,8 +47,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $periodo = new DatePeriod($inicio, $intervalo, $fin);
 
                 foreach ($periodo as $dt) {
-                    // format('N') devuelve 1 (lunes) a 7 (domingo)
-                    // Si es de Lunes a Viernes (menor que 6)
                     if ($dt->format('N') < 6) {
                         // Comprobar si ese día es festivo
                         $stF = $pdo->prepare("SELECT id FROM festivos WHERE fecha = ?");
@@ -65,14 +63,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $stmtUpdateUser->execute([$diasARestar, $sol['usuario_id']]);
         }
         
-        // 3. Si estaba aprobada y ahora se rechaza, devolvemos los días (Opcional, pero recomendado)
-        // Solo si quieres que al rechazar algo ya aprobado se reintegren los días automáticamente.
-        /*
-        if ($estado == 'rechazado' && $sol['estado'] == 'aprobado' && $recuperable == 1) {
-             // ... lógica inversa para sumar ...
-        }
-        */
-
         // 4. Actualizar estado de la solicitud y resetear notificación para el empleado
         $stmtUpdateAusencia = $pdo->prepare("UPDATE ausencias SET estado = ?, recuperable = ?, notificacion_vista = 0 WHERE id = ?");
         $stmtUpdateAusencia->execute([$estado, $recuperable, $id]);
