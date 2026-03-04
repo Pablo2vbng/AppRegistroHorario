@@ -32,7 +32,7 @@ try {
         $stmtR = $pdo->prepare("SELECT f.fecha_hora, f.tipo FROM fichajes f JOIN usuarios u ON f.usuario_id = u.id WHERE MONTH(f.fecha_hora) = ? AND YEAR(f.fecha_hora) = ? AND u.rol = 'empleado'");
         $stmtR->execute([$mesActual, $anioActual]);
     } else {
-        // Cálculo para un trabajador específico (Seguro con Prepared Statements)
+        // Cálculo para un trabajador específico
         $idAConsultar = ($esAdmin) ? $filtroEmp : $miId;
         $stmtTarget = $pdo->prepare("SELECT horas_jornada, dias_laborables FROM usuarios WHERE id = ?");
         $stmtTarget->execute([$idAConsultar]);
@@ -68,7 +68,7 @@ try {
     error_log("Error Dashboard: " . $e->getMessage());
 }
 
-// Datos Muro Admin
+// Datos Muro Admin y Empleado
 if($esAdmin) {
     $pendientes = $pdo->query("SELECT COUNT(*) FROM ausencias WHERE estado = 'pendiente'")->fetchColumn();
     $estadoPlantilla = $pdo->query("SELECT u.id, u.nombre, u.foto_url, f.tipo as ultimo_estado FROM usuarios u LEFT JOIN (SELECT f1.usuario_id, f1.tipo FROM fichajes f1 WHERE f1.id = (SELECT MAX(f2.id) FROM fichajes f2 WHERE f2.usuario_id = f1.usuario_id AND DATE(f2.fecha_hora) = CURDATE())) f ON u.id = f.usuario_id WHERE u.rol = 'empleado' ORDER BY u.nombre ASC")->fetchAll();
@@ -76,8 +76,15 @@ if($esAdmin) {
     $ausenciasHoy = $pdo->query("SELECT u.nombre, a.tipo FROM ausencias a JOIN usuarios u ON a.usuario_id = u.id WHERE a.estado = 'aprobado' AND u.rol = 'empleado' AND CURDATE() BETWEEN a.fecha_inicio AND a.fecha_fin")->fetchAll();
     $festivoHoy = $pdo->query("SELECT nombre FROM festivos WHERE fecha = CURDATE()")->fetchColumn();
 } else {
+    // 1. Notificaciones de Ausencias (Tus originales)
     $notif = $pdo->prepare("SELECT id, tipo, estado FROM ausencias WHERE usuario_id = ? AND notificacion_vista = 0 AND estado != 'pendiente'");
     $notif->execute([$miId]); $notifList = $notif->fetchAll();
+    
+    // 2. NUEVO: Avisos Generales del Admin que no haya leído
+    $stmtAvisos = $pdo->prepare("SELECT id, mensaje FROM avisos_generales WHERE activo = 1 AND id NOT IN (SELECT aviso_id FROM avisos_leidos WHERE usuario_id = ?)");
+    $stmtAvisos->execute([$miId]); $avisosGenerales = $stmtAvisos->fetchAll();
+
+    // 3. Estado actual para los botones
     $stmtMiEstado = $pdo->prepare("SELECT tipo FROM fichajes WHERE usuario_id = ? AND DATE(fecha_hora) = CURDATE() ORDER BY id DESC LIMIT 1");
     $stmtMiEstado->execute([$miId]); $miEstadoActual = $stmtMiEstado->fetchColumn() ?: 'fuera';
 }
@@ -86,6 +93,19 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
 ?>
 
 <div class="max-w-7xl mx-auto pb-20">
+
+    <?php if(!$esAdmin && isset($avisosGenerales) && count($avisosGenerales) > 0): foreach($avisosGenerales as $aviso): ?>
+        <div class="bg-blue-50 border-l-8 border-blue-500 p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center mx-2">
+            <div class="flex items-center gap-4">
+                <i class="fas fa-info-circle text-blue-500 text-2xl animate-pulse"></i>
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-1">Aviso de Dirección</p>
+                    <p class="text-sm font-bold text-slate-700"><?php echo nl2br(htmlspecialchars($aviso['mensaje'])); ?></p>
+                </div>
+            </div>
+            <button onclick="marcarAvisoLeido(<?php echo $aviso['id']; ?>)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition shadow-md">Entendido</button>
+        </div>
+    <?php endforeach; endif; ?>
 
     <?php if(!$esAdmin): foreach($notifList as $n): ?>
         <div class="bg-white border-l-8 <?php echo ($n['estado']=='aprobado')?'border-emerald-500':'border-rose-500'; ?> p-6 rounded-3xl mb-6 shadow-xl flex justify-between items-center animate-bounce mx-2">
@@ -107,15 +127,21 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-10 mx-2">
         <div class="lg:col-span-1 bg-white rounded-[50px] shadow-sm border border-slate-200 p-10 flex flex-col items-center">
             <?php if($esAdmin): ?>
-            <form method="GET" class="w-full mb-8">
-                <input type="hidden" name="p" value="dashboard">
-                <select name="ver_emp" onchange="this.form.submit()" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-blue-500 transition shadow-inner">
-                    <option value="all" <?php echo ($filtroEmp == 'all')?'selected':''; ?>>✨ TODA LA PLANTILLA</option>
-                    <?php foreach($usuariosLista as $u): ?>
-                        <option value="<?php echo $u['id']; ?>" <?php echo ($filtroEmp == $u['id'])?'selected':''; ?>><?php echo $u['nombre']; ?></option>
-                    <?php endforeach; ?>
-                </select>
-            </form>
+            <div class="w-full flex flex-col gap-4 mb-8">
+                <form method="GET" class="w-full">
+                    <input type="hidden" name="p" value="dashboard">
+                    <select name="ver_emp" onchange="this.form.submit()" class="w-full bg-slate-50 border-2 border-slate-100 p-4 rounded-2xl font-black text-xs uppercase outline-none focus:border-blue-500 transition shadow-inner">
+                        <option value="all" <?php echo ($filtroEmp == 'all')?'selected':''; ?>>✨ TODA LA PLANTILLA</option>
+                        <?php foreach($usuariosLista as $u): ?>
+                            <option value="<?php echo $u['id']; ?>" <?php echo ($filtroEmp == $u['id'])?'selected':''; ?>><?php echo $u['nombre']; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </form>
+                
+                <button onclick="crearAvisoGeneral()" class="w-full bg-amber-400 hover:bg-amber-500 text-amber-900 p-3 rounded-2xl font-black text-xs uppercase transition shadow-md flex items-center justify-center gap-2">
+                    <i class="fas fa-bullhorn"></i> Enviar Aviso General
+                </button>
+            </div>
             <?php else: ?>
                 <h3 class="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-8 text-center">Horas acumuladas este mes</h3>
             <?php endif; ?>
@@ -204,7 +230,7 @@ $nextFest = $pdo->query("SELECT nombre, fecha FROM festivos WHERE fecha >= CURDA
 </div>
 
 <script>
-// Gráfico de productividad
+// Gráfico de productividad (Original)
 new Chart(document.getElementById('chartProd'), { 
     type: 'doughnut', 
     data: { 
@@ -222,6 +248,7 @@ new Chart(document.getElementById('chartProd'), {
     } 
 });
 
+// Fichaje (Original)
 function fichar(tipo) {
     Swal.fire({ title: 'Obteniendo GPS...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
     navigator.geolocation.getCurrentPosition(pos => {
@@ -246,6 +273,7 @@ function fichar(tipo) {
     });
 }
 
+// Notificación de ausencia (Original)
 function marcarLeida(id) { 
     const params = new URLSearchParams();
     params.append('id', id);
@@ -254,5 +282,52 @@ function marcarLeida(id) {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'}, 
         body: params.toString() 
     }).then(() => location.reload()); 
+}
+
+// ==========================================
+// NUEVAS FUNCIONES PARA LOS AVISOS GENERALES
+// ==========================================
+
+// Para el Admin: Crear un aviso
+function crearAvisoGeneral() {
+    Swal.fire({
+        title: '📢 Enviar Aviso General',
+        text: 'Escribe el mensaje que verán todos los empleados al entrar:',
+        input: 'textarea',
+        inputPlaceholder: 'Ej: Recordad que mañana el horario es intensivo...',
+        showCancelButton: true,
+        confirmButtonText: 'Enviar a todos',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#64748b'
+    }).then((result) => {
+        if (result.isConfirmed && result.value.trim() !== '') {
+            const params = new URLSearchParams();
+            params.append('mensaje', result.value);
+            
+            fetch('api/aviso_crear.php', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: params.toString()
+            }).then(res => res.json()).then(data => {
+                if(data.success) {
+                    Swal.fire('¡Enviado!', 'El aviso ha sido publicado.', 'success');
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            });
+        }
+    });
+}
+
+// Para el Empleado: Marcar como leído
+function marcarAvisoLeido(id) {
+    const params = new URLSearchParams();
+    params.append('aviso_id', id);
+    fetch('api/aviso_leido.php', { 
+        method: 'POST', 
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'}, 
+        body: params.toString() 
+    }).then(() => location.reload());
 }
 </script>
