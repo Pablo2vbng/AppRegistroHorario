@@ -26,15 +26,21 @@ function calcularDistancia($lat1, $lon1, $lat2, $lon2) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $user_id = $_SESSION['usuario_id'];
     
-    // Sanitizamos las entradas para mayor seguridad
-    $tipo = filter_input(INPUT_POST, 'tipo', FILTER_SANITIZE_SPECIAL_CHARS);
-    $lat  = filter_input(INPUT_POST, 'lat', FILTER_VALIDATE_FLOAT);
-    $lng  = filter_input(INPUT_POST, 'lng', FILTER_VALIDATE_FLOAT);
+    // Sanitizamos el tipo
+    $tipo = isset($_POST['tipo']) ? htmlspecialchars($_POST['tipo']) : '';
+    
+    // CORRECCIÓN 1: Evitar fallos de float por la configuración regional del servidor
+    // Recogemos lat y lng, cambiamos posibles comas por puntos y forzamos a float numérico
+    $lat_raw = isset($_POST['lat']) ? str_replace(',', '.', $_POST['lat']) : null;
+    $lng_raw = isset($_POST['lng']) ? str_replace(',', '.', $_POST['lng']) : null;
+    
+    $lat = is_numeric($lat_raw) ? (float)$lat_raw : null;
+    $lng = is_numeric($lng_raw) ? (float)$lng_raw : null;
     
     $fuera_rango = 0;
     
     // Solo calculamos si tenemos coordenadas válidas
-    if($lat !== false && $lng !== false && $lat !== null && $lng !== null) {
+    if($lat !== null && $lng !== null) {
         $distancia = calcularDistancia($lat, $lng, OFICINA_LAT, OFICINA_LNG);
         if($distancia > RADIO_PERMITIDO) {
             $fuera_rango = 1;
@@ -42,13 +48,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     try {
+        // Mantenemos tu consulta original intacta
         $sql = "INSERT INTO fichajes (usuario_id, tipo, latitud, longitud, fuera_rango, ip_registro, fecha_registro) 
                 VALUES (?, ?, ?, ?, ?, ?, NOW())";
         
         $stmt = $pdo->prepare($sql);
         
-        // Obtenemos la IP real incluso detrás de proxies de Hostinger
-        $ip = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'];
+        // CORRECCIÓN 2: Limpiar la IP. Hostinger a veces concatena IPs. Nos quedamos solo con la primera y le quitamos espacios.
+        $ip_full = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+        $ip = trim(explode(',', $ip_full)[0]); 
         
         $stmt->execute([
             $user_id, 
@@ -66,11 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ]);
 
     } catch (PDOException $e) {
-        // Logueamos el error internamente y enviamos un mensaje genérico
+        // CORRECCIÓN 3: Exponemos el error real en la alerta para saber exactamente por qué se queja la base de datos
         error_log("Error en fichaje (Usuario: $user_id): " . $e->getMessage());
         echo json_encode([
             'success' => false, 
-            'message' => 'Error al registrar el fichaje en la base de datos.'
+            'message' => 'Error BD: ' . $e->getMessage()
         ]);
     }
 } else {
