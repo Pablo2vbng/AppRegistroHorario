@@ -1,5 +1,5 @@
 <?php
-// 1. CORRECCIÓN DE RUTA: Subimos dos niveles para encontrar la carpeta config
+// Subimos dos niveles para encontrar la carpeta config
 require_once __DIR__ . '/../../config/config.php';
 
 // Seguridad: Solo administradores
@@ -17,11 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $entrada_t = $_POST['entrada_t'] ?? '';
     $salida_t = $_POST['salida_t'] ?? '';
     $variacion = (int)$_POST['variacion']; 
-    $vacaciones_inicio = $_POST['vacaciones_inicio'];
-    $vacaciones_fin = $_POST['vacaciones_fin'];
     $dias_trabajo = $_POST['dias_trabajo'] ?? [1,2,3,4,5]; 
 
-    // 2. CORRECCIÓN DE SEMANA SANTA: Cálculo matemático puro para evitar el Error 500 por falta de librerías
+    // Cálculo matemático puro de Semana Santa y festivos fijos
     function obtenerFestivos($anio) {
         $festivos = [
             "$anio-01-01", "$anio-01-06", "$anio-03-19", "$anio-05-01",
@@ -29,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             "$anio-11-01", "$anio-12-06", "$anio-12-08", "$anio-12-25"
         ];
         
-        // Algoritmo de Gauss para calcular el Domingo de Resurrección sin depender de easter_date()
         $a = $anio % 19;
         $b = floor($anio / 100);
         $c = $anio % 100;
@@ -46,7 +43,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $diaPascua = (($h + $l - 7 * $m + 114) % 31) + 1;
         
         $fechaPascua = sprintf("%04d-%02d-%02d", $anio, $mesPascua, $diaPascua);
-        
         $viernesSanto = date("Y-m-d", strtotime("$fechaPascua - 2 days"));
         $lunesPascua = date("Y-m-d", strtotime("$fechaPascua + 1 days"));
         
@@ -62,17 +58,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $festivosAnio = obtenerFestivos($anio);
 
+    // ==========================================
+    // LÓGICA DE VACACIONES ALEATORIAS (22 Días)
+    // ==========================================
+    function esDiaLaborable($fecha, $dias_trabajo, $festivos) {
+        $w = date('N', strtotime($fecha));
+        if (!in_array($w, $dias_trabajo)) return false; // Es fin de semana (o día libre)
+        if (in_array($fecha, $festivos)) return false; // Es festivo
+        return true;
+    }
+
+    $diasVacacionesAleatorias = [];
+    
+    // Función que busca un hueco aleatorio continuo saltando festivos y findes
+    function asignarBloqueVacaciones($anio, $mesesPosibles, $diasNecesarios, $dias_trabajo, $festivos, &$asignados) {
+        $inicios = [];
+        foreach ($mesesPosibles as $m) {
+            $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $m, $anio);
+            for ($d = 1; $d <= $diasEnMes; $d++) {
+                $fechaStr = sprintf("%04d-%02d-%02d", $anio, $m, $d);
+                if (esDiaLaborable($fechaStr, $dias_trabajo, $festivos) && !in_array($fechaStr, $asignados)) {
+                    $inicios[] = $fechaStr;
+                }
+            }
+        }
+        
+        shuffle($inicios); // Mezclamos para que sea totalmente aleatorio
+        foreach ($inicios as $inicio) {
+            $bloque = [];
+            $fechaActual = $inicio;
+            while (count($bloque) < $diasNecesarios) {
+                if (date('Y', strtotime($fechaActual)) > $anio + 1) break; // Límite seguridad
+                
+                if (esDiaLaborable($fechaActual, $dias_trabajo, $festivos) && !in_array($fechaActual, $asignados)) {
+                    $bloque[] = $fechaActual;
+                }
+                $fechaActual = date('Y-m-d', strtotime($fechaActual . ' + 1 day'));
+            }
+            if (count($bloque) == $diasNecesarios) {
+                return $bloque;
+            }
+        }
+        return [];
+    }
+
+    // Generamos 15 días laborables en Verano (Meses 7 y 8)
+    $verano = asignarBloqueVacaciones($anio, [7, 8], 15, $dias_trabajo, $festivosAnio, $diasVacacionesAleatorias);
+    $diasVacacionesAleatorias = array_merge($diasVacacionesAleatorias, $verano);
+
+    // Generamos 7 días laborables en Invierno (Meses 1, 2 y 12)
+    $invierno = asignarBloqueVacaciones($anio, [1, 2, 12], 7, $dias_trabajo, $festivosAnio, $diasVacacionesAleatorias);
+    $diasVacacionesAleatorias = array_merge($diasVacacionesAleatorias, $invierno);
+
+    // ==========================================
+
     function generarHoraConVariacion($horaBase, $variacion) {
         if (empty($horaBase)) return '';
         $segundosVariacion = rand(-$variacion * 60, $variacion * 60);
         $timestamp = strtotime($horaBase) + $segundosVariacion;
         return date('H:i', $timestamp);
-    }
-
-    function esVacaciones($fecha, $inicio, $fin) {
-        if (empty($inicio) || empty($fin)) return false;
-        $f = strtotime($fecha);
-        return ($f >= strtotime($inicio) && $f <= strtotime($fin));
     }
 
     ob_start();
@@ -128,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $esFestivo = in_array($fechaActual, $festivosAnio);
                         $esFinde = !in_array($diaSemana, $dias_trabajo);
-                        $estaDeVacaciones = esVacaciones($fechaActual, $vacaciones_inicio, $vacaciones_fin);
+                        $estaDeVacaciones = in_array($fechaActual, $diasVacacionesAleatorias); // Ahora busca en el array generado
 
                         if ($esFinde || $esFestivo || $estaDeVacaciones) {
                             echo "<tr><td>$dia</td><td></td><td></td><td></td><td>00:00</td></tr>";
@@ -313,17 +357,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label><input type="checkbox" name="dias_trabajo[]" value="5" checked> V</label>
                 </div>
             </div>
-            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100">
-                <h3 class="font-black text-blue-800 uppercase mb-4 text-sm">Bloque de Vacaciones</h3>
-                <div class="flex gap-4">
-                    <div class="w-full">
-                        <label class="block text-[10px] font-bold text-blue-600">Desde</label>
-                        <input type="date" name="vacaciones_inicio" class="w-full border p-2 rounded-lg text-sm">
-                    </div>
-                    <div class="w-full">
-                        <label class="block text-[10px] font-bold text-blue-600">Hasta</label>
-                        <input type="date" name="vacaciones_fin" class="w-full border p-2 rounded-lg text-sm">
-                    </div>
+            <div class="bg-blue-50 p-6 rounded-2xl border border-blue-100 flex items-center">
+                <div class="w-full">
+                    <h3 class="font-black text-blue-800 uppercase mb-2 text-sm">Vacaciones (22 Días)</h3>
+                    <p class="text-[10px] text-blue-700 font-bold leading-relaxed">
+                        <i class="fas fa-magic mr-1"></i> El sistema buscará de forma aleatoria huecos libres de festivos y asignará:<br>
+                        • <strong>15 días laborables</strong> seguidos en Verano (Jul-Ago)<br>
+                        • <strong>7 días laborables</strong> seguidos en Invierno (Dic-Ene-Feb)
+                    </p>
                 </div>
             </div>
         </div>
