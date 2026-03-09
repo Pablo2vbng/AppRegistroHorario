@@ -1,5 +1,6 @@
 <?php
-require_once 'config/config.php';
+// 1. CORRECCIÓN DE RUTA: Subimos dos niveles para encontrar la carpeta config
+require_once __DIR__ . '/../../config/config.php';
 
 // Seguridad: Solo administradores
 if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
@@ -15,38 +16,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $salida_m = $_POST['salida_m'];
     $entrada_t = $_POST['entrada_t'] ?? '';
     $salida_t = $_POST['salida_t'] ?? '';
-    $variacion = (int)$_POST['variacion']; // Minutos aleatorios arriba/abajo
+    $variacion = (int)$_POST['variacion']; 
     $vacaciones_inicio = $_POST['vacaciones_inicio'];
     $vacaciones_fin = $_POST['vacaciones_fin'];
-    $dias_trabajo = $_POST['dias_trabajo'] ?? [1,2,3,4,5]; // Días de la semana
+    $dias_trabajo = $_POST['dias_trabajo'] ?? [1,2,3,4,5]; 
 
-    // Función para calcular festivos móviles (Semana Santa) y fijos en la CV
+    // 2. CORRECCIÓN DE SEMANA SANTA: Cálculo matemático puro para evitar el Error 500 por falta de librerías
     function obtenerFestivos($anio) {
         $festivos = [
-            "$anio-01-01", // Año Nuevo
-            "$anio-01-06", // Reyes
-            "$anio-03-19", // San José (Fallas)
-            "$anio-05-01", // Día del Trabajador
-            "$anio-06-24", // San Juan
-            "$anio-08-15", // Asunción
-            "$anio-10-09", // Día Comunitat Valenciana
-            "$anio-10-12", // Fiesta Nacional
-            "$anio-11-01", // Todos los Santos
-            "$anio-12-06", // Constitución
-            "$anio-12-08", // Inmaculada
-            "$anio-12-25"  // Navidad
+            "$anio-01-01", "$anio-01-06", "$anio-03-19", "$anio-05-01",
+            "$anio-06-24", "$anio-08-15", "$anio-10-09", "$anio-10-12",
+            "$anio-11-01", "$anio-12-06", "$anio-12-08", "$anio-12-25"
         ];
         
-        // Calcular Semana Santa (Viernes Santo y Lunes de Pascua)
-        $diasPascua = easter_days($anio);
-        $fechaPascua = date("Y-m-d", easter_date($anio));
+        // Algoritmo de Gauss para calcular el Domingo de Resurrección sin depender de easter_date()
+        $a = $anio % 19;
+        $b = floor($anio / 100);
+        $c = $anio % 100;
+        $d = floor($b / 4);
+        $e = $b % 4;
+        $f = floor(($b + 8) / 25);
+        $g = floor(($b - $f + 1) / 3);
+        $h = (19 * $a + $b - $d - $g + 15) % 30;
+        $i = floor($c / 4);
+        $k = $c % 4;
+        $l = (32 + 2 * $e + 2 * $i - $h - $k) % 7;
+        $m = floor(($a + 11 * $h + 22 * $l) / 451);
+        $mesPascua = floor(($h + $l - 7 * $m + 114) / 31);
+        $diaPascua = (($h + $l - 7 * $m + 114) % 31) + 1;
+        
+        $fechaPascua = sprintf("%04d-%02d-%02d", $anio, $mesPascua, $diaPascua);
+        
         $viernesSanto = date("Y-m-d", strtotime("$fechaPascua - 2 days"));
         $lunesPascua = date("Y-m-d", strtotime("$fechaPascua + 1 days"));
         
         $festivos[] = $viernesSanto;
         $festivos[] = $lunesPascua;
         
-        // Placeholder festivos locales Benigànim (Ej: Fiestas patronales a finales de agosto)
+        // Fiestas locales Benigànim
         $festivos[] = "$anio-08-30"; 
         $festivos[] = "$anio-08-31";
 
@@ -112,7 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <?php
                     for ($dia = 1; $dia <= 31; $dia++) {
                         if ($dia > $diasEnMes) {
-                            // Filas vacías para rellenar tabla hasta el 31 si el mes tiene menos días
                             echo "<tr><td>$dia</td><td></td><td></td><td></td><td></td></tr>";
                             continue;
                         }
@@ -127,7 +133,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if ($esFinde || $esFestivo || $estaDeVacaciones) {
                             echo "<tr><td>$dia</td><td></td><td></td><td></td><td>00:00</td></tr>";
                         } else {
-                            // Día laborable - Generamos horas
                             $e1 = generarHoraConVariacion($entrada_m, $variacion);
                             $s1 = generarHoraConVariacion($salida_m, $variacion);
                             $e2 = generarHoraConVariacion($entrada_t, $variacion);
@@ -199,7 +204,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Estilos específicos para la generación del PDF */
         body { background-color: #f8fafc; }
         .hoja-pdf {
             width: 210mm;
@@ -247,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h1 class="text-2xl font-black text-slate-800 uppercase italic">Generador Histórico</h1>
             <p class="text-slate-400 font-bold text-sm">Creación de informes retroactivos simulados</p>
         </div>
-        <a href="../index.php?p=dashboard" class="text-blue-500 font-bold hover:underline"><i class="fas fa-arrow-left"></i> Volver</a>
+        <a href="../../index.php?p=dashboard" class="text-blue-500 font-bold hover:underline"><i class="fas fa-arrow-left"></i> Volver</a>
     </div>
 
     <form method="POST" action="" class="space-y-6">
