@@ -27,14 +27,12 @@ try {
     }
 
     // 3. COMPROBAR FESTIVOS Y VACACIONES
-    // Festivo
     $stF = $pdo->prepare("SELECT id FROM festivos WHERE fecha = ?");
     $stF->execute([$fechaHoy]);
     if ($stF->fetch()) {
         die("Hoy es festivo. No se ficha.");
     }
 
-    // Vacaciones o Baja Médica Aprobada
     $stV = $pdo->prepare("SELECT id FROM ausencias WHERE usuario_id = ? AND estado = 'aprobado' AND ? BETWEEN fecha_inicio AND fecha_fin");
     $stV->execute([$pabloId, $fechaHoy]);
     if ($stV->fetch()) {
@@ -42,65 +40,64 @@ try {
     }
 
     // 4. GENERAR HORAS ALEATORIAS DETERMINISTAS PARA HOY
-    // Usamos la fecha de hoy como semilla para que los números aleatorios sean los mismos durante todo el día
-    // Así garantizamos que no cambien de opinión en cada minuto que pase.
+    // La semilla garantiza que los minutos aleatorios calculados sean fijos para todo el día
     $seed = (int) date('Ymd');
     srand($seed);
 
-    // Entrada Mañana: 08:00 (Aleatorio 10 a 15 mins ANTES) -> Rango 07:45 a 07:50
+    // Entrada Mañana: Rango 07:45 a 07:50
     $minutosE1 = rand(-15, -10);
     $horaEntrada1 = date('H:i', strtotime("08:00 $minutosE1 minutes"));
 
-    // Salida Mañana (Pausa): 13:30 (Aleatorio 5 mins ANTES a 5 mins DESPUÉS) -> Rango 13:25 a 13:35
+    // Salida Mañana (Pausa): Rango 13:25 a 13:35
     $minutosS1 = rand(-5, 5);
     $horaSalida1 = date('H:i', strtotime("13:30 $minutosS1 minutes"));
 
-    // Entrada Tarde (Reanudar): 15:30 (Aleatorio 10 a 15 mins ANTES) -> Rango 15:15 a 15:20
+    // Entrada Tarde (Reanudar): Rango 15:15 a 15:20
     $minutosE2 = rand(-15, -10);
     $horaEntrada2 = date('H:i', strtotime("15:30 $minutosE2 minutes"));
 
-    // Salida Tarde (Salida Definitiva): 18:00 (Aleatorio 5 mins ANTES a 5 mins DESPUÉS) -> Rango 17:55 a 18:05
+    // Salida Tarde (Salida Definitiva): Rango 17:55 a 18:05
     $minutosS2 = rand(-5, 5);
     $horaSalida2 = date('H:i', strtotime("18:00 $minutosS2 minutes"));
 
-    // Restauramos el generador aleatorio a su estado normal por seguridad
-    srand();
+    srand(); // Restauramos semilla
 
-    // 5. FUNCIÓN PARA INSERTAR EL FICHAJE
-    function insertarFichajePablo($pdo, $pabloId, $tipo) {
-        // Primero verificamos que no haya fichado ya este mismo tipo hoy (para evitar duplicados)
+    // 5. FUNCIÓN PARA INSERTAR EL FICHAJE CON LA HORA EXACTA CALCULADA
+    function insertarFichajePablo($pdo, $pabloId, $tipo, $fechaHoraSimulada) {
         $stCheck = $pdo->prepare("SELECT id FROM fichajes WHERE usuario_id = ? AND tipo = ? AND DATE(fecha_hora) = CURDATE()");
         $stCheck->execute([$pabloId, $tipo]);
         
         if (!$stCheck->fetch()) {
             $sql = "INSERT INTO fichajes (usuario_id, tipo, latitud, longitud, fuera_rango, ip_registro, fecha_hora) 
-                    VALUES (?, ?, ?, ?, 0, '127.0.0.1 (Auto)', NOW())";
+                    VALUES (?, ?, ?, ?, 0, '127.0.0.1 (Auto)', ?)";
             $stmt = $pdo->prepare($sql);
-            // Le ponemos las coordenadas exactas de la oficina para que salga todo perfecto
-            $stmt->execute([$pabloId, $tipo, OFICINA_LAT, OFICINA_LNG]);
-            error_log("Fichaje automático de Pablo insertado: $tipo");
+            $stmt->execute([$pabloId, $tipo, OFICINA_LAT, OFICINA_LNG, $fechaHoraSimulada]);
+            error_log("Fichaje automático de Pablo insertado: $tipo a las $fechaHoraSimulada");
             return true;
         }
         return false;
     }
 
-    // 6. LÓGICA DE DETECCIÓN (Si el reloj coincide con las horas calculadas, ficha)
-    $fichajeRealizado = false;
+    // 6. LÓGICA DE DETECCIÓN ACUMULATIVA (A prueba de retrasos del servidor)
+    $acciones = 0;
 
-    if ($ahora === $horaEntrada1) {
-        $fichajeRealizado = insertarFichajePablo($pdo, $pabloId, 'entrada');
-    } elseif ($ahora === $horaSalida1) {
-        $fichajeRealizado = insertarFichajePablo($pdo, $pabloId, 'pausa');
-    } elseif ($ahora === $horaEntrada2) {
-        $fichajeRealizado = insertarFichajePablo($pdo, $pabloId, 'reanudar');
-    } elseif ($ahora === $horaSalida2) {
-        $fichajeRealizado = insertarFichajePablo($pdo, $pabloId, 'salida');
+    if ($ahora >= $horaEntrada1) {
+        if (insertarFichajePablo($pdo, $pabloId, 'entrada', "$fechaHoy $horaEntrada1:00")) $acciones++;
+    }
+    if ($ahora >= $horaSalida1) {
+        if (insertarFichajePablo($pdo, $pabloId, 'pausa', "$fechaHoy $horaSalida1:00")) $acciones++;
+    }
+    if ($ahora >= $horaEntrada2) {
+        if (insertarFichajePablo($pdo, $pabloId, 'reanudar', "$fechaHoy $horaEntrada2:00")) $acciones++;
+    }
+    if ($ahora >= $horaSalida2) {
+        if (insertarFichajePablo($pdo, $pabloId, 'salida', "$fechaHoy $horaSalida2:00")) $acciones++;
     }
 
-    if ($fichajeRealizado) {
-        echo "Fichaje ejecutado correctamente a las $ahora.";
+    if ($acciones > 0) {
+        echo "Se han recuperado/insertado $acciones fichajes de Pablo.";
     } else {
-        echo "Revisión completada. No toca fichar en este minuto ($ahora).";
+        echo "Revisión completada. Todo al día ($ahora).";
     }
 
 } catch (Exception $e) {
