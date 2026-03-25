@@ -382,7 +382,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </button>
         <p class="text-xs text-slate-500 mt-3 font-bold">Asegúrate de seleccionar "Guardar como PDF" en las opciones de destino de la impresora.</p>
     </div>
-
+fs
     <?php echo $reportHtml; ?>
 <?php endif; ?>
 
