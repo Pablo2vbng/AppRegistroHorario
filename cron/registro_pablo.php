@@ -17,7 +17,7 @@ if ($hoyDiaSemana > 5) {
 }
 
 try {
-    // 2. BUSCAR A PABLO EN LA BASE DE DATOS (Corregido: Sin restricción de rol)
+    // 2. BUSCAR A PABLO EN LA BASE DE DATOS
     $stmtP = $pdo->prepare("SELECT id FROM usuarios WHERE nombre LIKE '%Pablo%' LIMIT 1");
     $stmtP->execute();
     $pabloId = $stmtP->fetchColumn();
@@ -61,17 +61,26 @@ try {
 
     srand(); // Restauramos semilla
 
-    // 5. FUNCIÓN PARA INSERTAR EL FICHAJE CON LA HORA EXACTA CALCULADA
+    // 5. FUNCIÓN PARA INSERTAR EL FICHAJE
     function insertarFichajePablo($pdo, $pabloId, $tipo, $fechaHoraSimulada) {
         $stCheck = $pdo->prepare("SELECT id FROM fichajes WHERE usuario_id = ? AND tipo = ? AND DATE(fecha_hora) = CURDATE()");
         $stCheck->execute([$pabloId, $tipo]);
         
         if (!$stCheck->fetch()) {
+            // CORRECCIÓN: Coordenadas reales fijas y captura de error estricta
+            $lat = 38.9390000;
+            $lng = -0.4470000;
+
             $sql = "INSERT INTO fichajes (usuario_id, tipo, latitud, longitud, fuera_rango, ip_registro, fecha_hora) 
                     VALUES (?, ?, ?, ?, 0, '127.0.0.1 (Auto)', ?)";
             $stmt = $pdo->prepare($sql);
-            $stmt->execute([$pabloId, $tipo, OFICINA_LAT, OFICINA_LNG, $fechaHoraSimulada]);
-            return true;
+            
+            if ($stmt->execute([$pabloId, $tipo, $lat, $lng, $fechaHoraSimulada])) {
+                return true;
+            } else {
+                // Si la base de datos rechaza la inserción por cualquier motivo de formato, lo imprimirá aquí
+                throw new Exception("Fallo en BD al insertar $tipo: " . implode(" | ", $stmt->errorInfo()));
+            }
         }
         return false;
     }
@@ -93,11 +102,11 @@ try {
     }
 
     if ($acciones > 0) {
-        echo "<h3 style='color:green;'>✅ ÉXITO: Se han recuperado/insertado $acciones fichajes de Pablo.</h3>";
+        echo "<h3 style='color:green;'>✅ ÉXITO REAL: Se han recuperado/insertado $acciones fichajes de Pablo en la Base de Datos.</h3>";
     } else {
         echo "<h3 style='color:blue;'>ℹ️ Revisión completada. Todo está al día para la hora actual ($ahora).</h3>";
     }
 
 } catch (Exception $e) {
-    echo "<h3 style='color:red;'>❌ Error: " . $e->getMessage() . "</h3>";
+    echo "<h3 style='color:red;'>❌ ERROR DETECTADO: " . $e->getMessage() . "</h3>";
 }
