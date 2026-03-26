@@ -17,13 +17,13 @@ if ($hoyDiaSemana > 5) {
 }
 
 try {
-    // 2. BUSCAR A PABLO EN LA BASE DE DATOS
-    $stmtP = $pdo->prepare("SELECT id FROM usuarios WHERE nombre LIKE '%Pablo%' AND rol = 'empleado' LIMIT 1");
+    // 2. BUSCAR A PABLO EN LA BASE DE DATOS (Corregido: Sin restricción de rol)
+    $stmtP = $pdo->prepare("SELECT id FROM usuarios WHERE nombre LIKE '%Pablo%' LIMIT 1");
     $stmtP->execute();
     $pabloId = $stmtP->fetchColumn();
 
     if (!$pabloId) {
-        die("No se encontró al usuario Pablo.");
+        die("No se encontró al usuario Pablo en la base de datos.");
     }
 
     // 3. COMPROBAR FESTIVOS Y VACACIONES
@@ -40,7 +40,6 @@ try {
     }
 
     // 4. GENERAR HORAS ALEATORIAS DETERMINISTAS PARA HOY
-    // La semilla garantiza que los minutos aleatorios calculados sean fijos para todo el día
     $seed = (int) date('Ymd');
     srand($seed);
 
@@ -72,13 +71,12 @@ try {
                     VALUES (?, ?, ?, ?, 0, '127.0.0.1 (Auto)', ?)";
             $stmt = $pdo->prepare($sql);
             $stmt->execute([$pabloId, $tipo, OFICINA_LAT, OFICINA_LNG, $fechaHoraSimulada]);
-            error_log("Fichaje automático de Pablo insertado: $tipo a las $fechaHoraSimulada");
             return true;
         }
         return false;
     }
 
-    // 6. LÓGICA DE DETECCIÓN ACUMULATIVA (A prueba de retrasos del servidor)
+    // 6. LÓGICA DE DETECCIÓN ACUMULATIVA
     $acciones = 0;
 
     if ($ahora >= $horaEntrada1) {
@@ -95,12 +93,11 @@ try {
     }
 
     if ($acciones > 0) {
-        echo "Se han recuperado/insertado $acciones fichajes de Pablo.";
+        echo "<h3 style='color:green;'>✅ ÉXITO: Se han recuperado/insertado $acciones fichajes de Pablo.</h3>";
     } else {
-        echo "Revisión completada. Todo al día ($ahora).";
+        echo "<h3 style='color:blue;'>ℹ️ Revisión completada. Todo está al día para la hora actual ($ahora).</h3>";
     }
 
 } catch (Exception $e) {
-    error_log("Error en fichaje automático de Pablo: " . $e->getMessage());
-    echo "Error: " . $e->getMessage();
+    echo "<h3 style='color:red;'>❌ Error: " . $e->getMessage() . "</h3>";
 }
