@@ -43,6 +43,18 @@ Plataforma integral para la gestión de recursos humanos, control de jornada, au
    * En tu panel de hosting, crea Tareas Cron configuradas para ejecutarse cada minuto (* * * * *).
    * Utiliza el comando cURL apuntando a la URL absoluta del archivo para asegurar la ejecución, ejemplo: 
      `curl -s "https://tu-dominio.com/cron/tu_archivo.php?token=TU_TOKEN" > /dev/null`
+     
+## Arquitectura de la Base de Datos
+
+El sistema se estructura principalmente sobre 4 tablas relacionales:
+
+usuarios: Contiene la plantilla. Almacena el rol (empleado/admin), días laborables por contrato y saldo vivo de vacaciones.
+
+fichajes: Tabla transaccional que registra cada movimiento (entrada, pausa, reanudar, salida), IP y coordenadas (lat/lng), indicando mediante un flag (fuera_rango) si se fichó lejos del radio de la oficina.
+
+ausencias: Bandeja de solicitudes de permisos. Guarda las rutas de los justificantes y un flag que dicta si el permiso aprobado descuenta o no saldo de vacaciones.
+
+festivos: Bloqueos de calendario general. Registra fiestas locales, autonómicas o nacionales, impidiendo el descuento de vacaciones si una solicitud de ausencia abarca estas fechas.
 
 ## Archivo de Configuración (config.php)
 
@@ -86,14 +98,4 @@ try {
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
-## Arquitectura de la Base de Datos
 
-El sistema se estructura principalmente sobre 4 tablas relacionales:
-
-usuarios: Contiene la plantilla. Almacena el rol (empleado/admin), días laborables por contrato y saldo vivo de vacaciones.
-
-fichajes: Tabla transaccional que registra cada movimiento (entrada, pausa, reanudar, salida), IP y coordenadas (lat/lng), indicando mediante un flag (fuera_rango) si se fichó lejos del radio de la oficina.
-
-ausencias: Bandeja de solicitudes de permisos. Guarda las rutas de los justificantes y un flag que dicta si el permiso aprobado descuenta o no saldo de vacaciones.
-
-festivos: Bloqueos de calendario general. Registra fiestas locales, autonómicas o nacionales, impidiendo el descuento de vacaciones si una solicitud de ausencia abarca estas fechas.
