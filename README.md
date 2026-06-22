@@ -56,6 +56,8 @@ ausencias: Bandeja de solicitudes de permisos. Guarda las rutas de los justifica
 
 festivos: Bloqueos de calendario general. Registra fiestas locales, autonómicas o nacionales, impidiendo el descuento de vacaciones si una solicitud de ausencia abarca estas fechas.
 
+Creado por Pablo Vidal Vidal. Desarrollador web
+
 ## Archivo de Configuración (config.php)
 
 Este es el archivo base necesario para conectar el sistema a la base de datos y definir las variables globales. Cópialo en `config/config.php` y rellena los espacios vacíos con los datos de tu entorno:
