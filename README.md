@@ -1,4 +1,4 @@
-# CVTools HR Manager - Registro Horario Digital
+# HR Manager - Registro Horario Digital
 
 [![PHP](https://img.shields.io/badge/PHP-8.x-blue.svg)](https://php.net/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-orange.svg)](https://mysql.com/)
