@@ -20,7 +20,7 @@ if ($hoyDiaSemana > 5) {
 $usuarios_auto = [
     'Pablo' => [
         'entrada1' => '07:00',
-        'salida1'  => '15:00'
+        'salida1'  => '15:01'
     ],
     'Rebeca' => [
         'entrada1' => '06:00',
