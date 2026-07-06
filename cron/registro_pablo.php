@@ -29,6 +29,7 @@ $usuarios_auto = [
 ];
 
 try {
+    //prueba
     // 3. COMPROBAR FESTIVOS GENERALES (Se hace una vez para todos)
     $stF = $pdo->prepare("SELECT id FROM festivos WHERE fecha = ?");
     $stF->execute([$fechaHoy]);
