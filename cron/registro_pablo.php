@@ -19,16 +19,12 @@ if ($hoyDiaSemana > 5) {
 // 2. DEFINIR USUARIOS AUTOMATIZADOS Y SUS HORARIOS
 $usuarios_auto = [
     'Pablo' => [
-        'entrada1' => '08:00',
-        'salida1'  => '13:30',
-        'entrada2' => '15:30',
-        'salida2'  => '18:00'
+        'entrada1' => '07:00',
+        'salida1'  => '15:00'
     ],
     'Rebeca' => [
-        'entrada1' => '08:00',
-        'salida1'  => '14:00',
-        'entrada2' => '15:00',
-        'salida2'  => '17:00'
+        'entrada1' => '06:00',
+        'salida1'  => '14:00'
     ]
 ];
 
