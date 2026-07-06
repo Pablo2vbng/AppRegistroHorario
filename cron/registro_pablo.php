@@ -16,7 +16,7 @@ if ($hoyDiaSemana > 5) {
     die("Hoy es fin de semana. No se ficha.");
 }
 
-// 2. DEFINIR USUARIOS AUTOMATIZADOS Y SUS HORARIOS
+// 2. DEFINIR USUARIOS AUTOMATIZADOS Y SUS HORARIOS con errror
 $usuarios_auto = [
     'Pablo' => [
         'entrada1' => '07:00',
