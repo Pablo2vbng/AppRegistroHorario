@@ -120,3 +120,11 @@ switch ($p) {
 }
 
 include 'views/layout_footer.php';
+
+
+// Activar reporte de errores temporalmente para depurar el Error 500
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// [NO QUITES NADA DE LO QUE YA TIENES AQUÍ ABAJO. PEGA ESTO SOLO AL PRINCIPIO]
